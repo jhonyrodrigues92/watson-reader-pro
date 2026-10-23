@@ -1,1164 +1,916 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Watson Reader Pro</title>
-
 <style>
-
-html{
-    min-height:100%;
-    background:#080d18;
-    overscroll-behavior-y:none;
+html{min-height:100%;background:#080d18;overscroll-behavior-y:none}
+body{margin:0;min-height:100vh;min-height:100dvh;box-sizing:border-box;overscroll-behavior-y:none;padding:28px 18px;background:radial-gradient(ellipse at 50% -12%,rgba(255,0,18,.68),transparent 48%),radial-gradient(ellipse at 4% 48%,rgba(230,0,0,.48),transparent 34%),radial-gradient(ellipse at 98% 52%,rgba(230,0,0,.44),transparent 36%),radial-gradient(ellipse at 50% 115%,rgba(230,0,0,.38),transparent 46%),repeating-radial-gradient(ellipse at 50% 8%,transparent 0 185px,rgba(255,20,35,.32) 188px 194px,transparent 199px 320px),linear-gradient(135deg,#080d18 0%,#111827 55%,#100b12 100%);background-attachment:fixed;color:white;font-family:Segoe UI,system-ui,sans-serif;display:flex;justify-content:center;align-items:flex-start}
+.container>*{position:relative;z-index:1}
+.app-header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding-bottom:16px;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,.09)}
+h1{margin:0;font-size:clamp(24px,3vw,34px);letter-spacing:-.6px;text-shadow:0 2px 18px rgba(0,0,0,.25)}
+h1::first-letter{color:#ff3333}
+.headphones{margin-right:7px}
+.pro{color:#ff3038}
+.brand{display:flex;align-items:center;gap:9px;flex-shrink:0;color:#ff3038;font-size:clamp(20px,2.5vw,30px);font-weight:750;letter-spacing:-.8px;text-shadow:0 0 18px rgba(230,0,0,.18)}
+.vodafone-mark{display:inline-block;width:34px;height:34px;border-radius:50%;background:#e60000;position:relative;box-shadow:0 0 16px rgba(230,0,0,.2)}
+.vodafone-mark::after{content:"";position:absolute;width:17px;height:19px;left:10px;top:4px;border-radius:55% 45% 55% 45%;background:#111827;transform:rotate(28deg)}
+.container{box-sizing:border-box;width:min(1320px,100%);margin:auto 0;background:linear-gradient(145deg,rgba(31,41,55,.97),rgba(17,24,39,.98));border:1px solid rgba(255,255,255,.07);border-top:3px solid #E60000;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.42),0 0 44px rgba(230,0,0,.16);padding:26px;position:relative;overflow:hidden}
+.toolbar{display:flex;align-items:center;gap:7px;flex-wrap:nowrap;width:100%;padding:9px;margin-top:14px;background:linear-gradient(135deg,rgba(8,15,29,.94),rgba(20,27,42,.88));border:1px solid rgba(148,163,184,.18);border-radius:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 10px 30px rgba(0,0,0,.16)}
+.voice-controls{display:flex;align-items:center;gap:7px;flex-wrap:nowrap;margin-left:auto;padding-left:0;border-left:0;flex:0 1 auto;min-width:0}
+.voice-controls #voz{width:clamp(150px,22vw,270px);min-width:120px;max-width:270px}
+.voice-controls #velocidade{flex:0 0 76px;min-width:76px}
+button{min-height:36px;padding:8px 11px;border:1px solid rgba(255,255,255,.1);border-radius:11px;cursor:pointer;font:600 13px/1.1 "Segoe UI",system-ui,sans-serif;letter-spacing:.2px;transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,filter .18s ease}
+button:hover{transform:translateY(-1px);filter:brightness(1.1)}
+button:active{transform:translateY(0) scale(.98)}
+button:focus-visible{outline:2px solid #ff4d4d;outline-offset:3px}
+.play{color:#fff;background:linear-gradient(135deg,#ff3038,#c90018);border-color:rgba(255,85,95,.65);box-shadow:0 0 18px rgba(230,0,0,.22),inset 0 1px 0 rgba(255,255,255,.18)}
+.pause,.stop,.nav{color:#e5edf8;background:linear-gradient(180deg,rgba(51,65,85,.72),rgba(30,41,59,.9));border-color:rgba(148,163,184,.2)}
+.pause:hover,.stop:hover,.nav:hover{background:linear-gradient(180deg,rgba(71,85,105,.86),rgba(39,52,73,.98));border-color:rgba(255,255,255,.22);box-shadow:0 0 14px rgba(148,163,184,.08)}
+.stop{color:#ff9a9f}
+.nav{min-width:36px;padding:8px 9px;font-size:14px}
+select{min-height:36px;padding:7px 28px 7px 10px;color:#e5edf8;background-color:#111c30;border:1px solid rgba(148,163,184,.24);border-radius:11px;outline:none}
+select:focus-visible{border-color:#ff454d;box-shadow:0 0 0 3px rgba(230,0,0,.13)}
+textarea{display:block;box-sizing:border-box;width:100%;height:170px;border:1px solid #3b4a63;border-radius:14px;padding:18px 20px;margin-top:20px;margin-bottom:15px;resize:vertical;background:linear-gradient(145deg,#111c30,#0f172a);color:#e5edf8;font-family:Inter,"Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.7;letter-spacing:.1px;outline:none;box-shadow:inset 0 1px 3px rgba(0,0,0,.18),0 4px 14px rgba(0,0,0,.10);transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+textarea::placeholder{color:#8291a9;opacity:1}
+textarea:hover{border-color:#526783}
+textarea:focus{border-color:#60a5fa;background:#101b2e;box-shadow:0 0 0 3px rgba(96,165,250,.16),inset 0 1px 3px rgba(0,0,0,.15)}
+textarea::selection{background:rgba(96,165,250,.4);color:#fff}
+.time-progress{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:0;margin-bottom:8px;color:#cbd5e1;font-size:13px}
+.time-progress strong{color:#fff;font-variant-numeric:tabular-nums;font-weight:700}
+.status-leitura{min-height:1.2em;color:#94a3b8;font-size:12px}
+.progress{width:100%;height:7px;background:#374151;border-radius:999px;margin-top:0;margin-bottom:14px;overflow:hidden;cursor:pointer}
+.progress:focus-visible{outline:2px solid #ff4d4d;outline-offset:3px}
+.progress-bar{width:0%;height:100%;background:#22c55e;transition:width .1s linear;pointer-events:none}
+.text-stage{position:relative;margin-top:20px;border-radius:14px}
+.text-stage textarea{margin-top:0;margin-bottom:0;height:300px}
+.text-stage .reader{display:none;box-sizing:border-box;height:300px;margin:0;overflow:auto;background:rgba(8,18,37,.82);border:1px solid rgba(96,165,250,.16);border-radius:14px;padding:22px 24px;line-height:1.9;font-size:17px;color:#e5edf8;cursor:text}
+.container.reading-mode .text-stage textarea{display:none}
+.container.reading-mode .text-stage .reader{display:block}
+.text-stage textarea,.text-stage .reader{scrollbar-width:thin;scrollbar-color:#e60000 #111827}
+.text-stage textarea::-webkit-scrollbar,.text-stage .reader::-webkit-scrollbar{width:12px}
+.text-stage textarea::-webkit-scrollbar-track,.text-stage .reader::-webkit-scrollbar-track{background:#111827}
+.text-stage textarea::-webkit-scrollbar-thumb,.text-stage .reader::-webkit-scrollbar-thumb{background-color:#e60000;border:2px solid #111827;border-radius:10px}
+.text-stage textarea::-webkit-scrollbar-thumb:hover,.text-stage .reader::-webkit-scrollbar-thumb:hover{background-color:#ff454d}
+.sentence{border-radius:6px}
+.sentence.current-sentence{background:rgba(250,204,21,.07)}
+.word{border-radius:4px;cursor:pointer}
+.word:hover{background:rgba(250,204,21,.22)}
+.word.current{background:#facc15;color:#111}
+@media(max-width:900px) and (min-width:651px){
+  .toolbar{flex-wrap:wrap}
+  .voice-controls{margin-left:auto}
+  .voice-controls #voz{width:190px;min-width:130px}
 }
-
-body{
-    margin:0;
-    min-height:100vh;
-    min-height:100dvh;
-    box-sizing:border-box;
-    overscroll-behavior-y:none;
-    padding:28px 18px;
-    background:
-        radial-gradient(ellipse at 50% -12%, rgba(255,0,18,.68), transparent 48%),
-        radial-gradient(ellipse at 4% 48%, rgba(230,0,0,.48), transparent 34%),
-        radial-gradient(ellipse at 98% 52%, rgba(230,0,0,.44), transparent 36%),
-        radial-gradient(ellipse at 50% 115%, rgba(230,0,0,.38), transparent 46%),
-        repeating-radial-gradient(ellipse at 50% 8%, transparent 0 185px, rgba(255,20,35,.32) 188px 194px, transparent 199px 320px),
-        linear-gradient(135deg, #080d18 0%, #111827 55%, #100b12 100%);
-    background-attachment:fixed;
-    color:white;
-    font-family:Segoe UI, system-ui, sans-serif;
-    display:flex;
-    justify-content:center;
-    align-items:flex-start;
+@media(max-width:650px){
+  body{padding:14px 10px;align-items:flex-start}
+  .container{padding:17px}
+  .app-header{align-items:flex-start;flex-direction:column;gap:12px}
+  .brand{font-size:22px}
+  .vodafone-mark{width:27px;height:27px}
+  .vodafone-mark::after{width:14px;height:15px;left:8px;top:4px}
+  .toolbar{flex-wrap:wrap;gap:6px;padding:9px}
+  .toolbar button{min-height:34px;padding:7px 9px;font-size:12px}
+  .toolbar .nav{min-width:32px;padding:7px}
+  .voice-controls{width:100%;margin-left:0;padding-top:8px;border-top:1px solid rgba(148,163,184,.16);flex-wrap:nowrap}
+  .voice-controls #voz{flex:1 1 auto;width:auto;min-width:0;max-width:none}
+  .voice-controls #velocidade{flex:0 0 82px}
+  .text-stage textarea,.text-stage .reader{height:260px;padding:15px;font-size:15px}
+  .time-progress{font-size:12px;gap:6px}
 }
-
-.container > *{ position:relative; z-index:1; }
-
-/* O logótipo grande fica fora do painel; não interfere com os controlos. */
-.container::before,
-.container::after{
-    content:none !important;
-}
-
-.app-header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:24px;
-    padding-bottom:16px;
-    margin-bottom:20px;
-    border-bottom:1px solid rgba(255,255,255,.09);
-}
-
-h1{
-    margin:0;
-    font-size:clamp(24px, 3vw, 34px);
-    letter-spacing:-.6px;
-    text-shadow:0 2px 18px rgba(0,0,0,.25);
-}
-
-.headphones{ margin-right:7px; }
-.pro{ color:#ff3038; }
-
-.brand{
-    display:flex;
-    align-items:center;
-    gap:9px;
-    flex-shrink:0;
-    color:#ff3038;
-    font-size:clamp(20px, 2.5vw, 30px);
-    font-weight:750;
-    letter-spacing:-.8px;
-    text-shadow:0 0 18px rgba(230,0,0,.18);
-}
-
-.vodafone-mark{
-    display:inline-block;
-    width:34px;
-    height:34px;
-    border-radius:50%;
-    background:#e60000;
-    position:relative;
-    box-shadow:0 0 16px rgba(230,0,0,.2);
-}
-
-.vodafone-mark::after{
-    content:"";
-    position:absolute;
-    width:17px;
-    height:19px;
-    left:10px;
-    top:4px;
-    border-radius:55% 45% 55% 45%;
-    background:#111827;
-    transform:rotate(28deg);
-}
-
-.container{
-    box-sizing:border-box;
-    width:min(1320px, 100%);
-    margin: auto 0;
-    background:linear-gradient(145deg, rgba(31,41,55,.97), rgba(17,24,39,.98));
-    border:1px solid rgba(255,255,255,.07);
-    border-top:3px solid #E60000;
-    border-radius:18px;
-    box-shadow:0 24px 70px rgba(0,0,0,.42), 0 0 44px rgba(230,0,0,.16);
-    padding:26px;
-    position:relative;
-    overflow:hidden;
-}
-
-h1{
-    margin-top:0;
-    padding-bottom:14px;
-    border-bottom:1px solid rgba(255,255,255,.09);
-    letter-spacing:-.4px;
-    text-shadow:0 2px 18px rgba(0,0,0,.25);
-}
-
-h1::first-letter{
-    color:#ff3333;
-}
-
-.reader{
-    height:300px;
-    margin-top:14px;
-    overflow:auto;
-    background:rgba(8,18,37,.82);
-    border:1px solid rgba(96,165,250,.16);
-    border-radius:12px;
-    padding:20px;
-    line-height:1.8;
-    font-size:16px;
-}
-
-.highlight{
-    background:#facc15;
-    color:black;
-    border-radius:4px;
-}
-
-.toolbar{
-    margin-top:0;
-    display:flex;
-    gap:7px;
-    align-items:center;
-    flex-wrap:nowrap;
-    width:100%;
-}
-
-.voice-controls{
-    display:flex;
-    align-items:center;
-    gap:7px;
-    flex-wrap:nowrap;
-    margin-left:auto;
-    padding-left:0;
-    border-left:0;
-    flex:0 1 auto;
-    min-width:0;
-}
-
-.voice-controls #voz{
-    width:clamp(150px, 22vw, 270px);
-    min-width:120px;
-    max-width:270px;
-}
-
-.voice-controls #velocidade{
-    flex:0 0 76px;
-    min-width:76px;
-}
-
-/* Controlos futuristas: painel escuro, contornos subtis e brilho vermelho. */
-.toolbar{
-    display:flex;
-    align-items:center;
-    gap:7px;
-    flex-wrap:nowrap;
-    padding:9px;
-    margin-top:14px;
-    background:linear-gradient(135deg, rgba(8,15,29,.94), rgba(20,27,42,.88));
-    border:1px solid rgba(148,163,184,.18);
-    border-radius:16px;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.035), 0 10px 30px rgba(0,0,0,.16);
-}
-button{
-    min-height:36px;
-    padding:8px 11px;
-    border:1px solid rgba(255,255,255,.1);
-    border-radius:11px;
-    cursor:pointer;
-    font:600 13px/1.1 "Segoe UI",system-ui,sans-serif;
-    letter-spacing:.2px;
-    transition:transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease, filter .18s ease;
-}
-button:hover{ transform:translateY(-1px); filter:brightness(1.1); }
-button:active{ transform:translateY(0) scale(.98); }
-button:focus-visible{ outline:2px solid #ff4d4d; outline-offset:3px; }
-.play{
-    color:#fff;
-    background:linear-gradient(135deg,#ff3038,#c90018);
-    border-color:rgba(255,85,95,.65);
-    box-shadow:0 0 18px rgba(230,0,0,.22), inset 0 1px 0 rgba(255,255,255,.18);
-}
-.pause,.stop,.nav{
-    color:#e5edf8;
-    background:linear-gradient(180deg,rgba(51,65,85,.72),rgba(30,41,59,.9));
-    border-color:rgba(148,163,184,.2);
-}
-.pause:hover,.stop:hover,.nav:hover{
-    background:linear-gradient(180deg,rgba(71,85,105,.86),rgba(39,52,73,.98));
-    border-color:rgba(255,255,255,.22);
-    box-shadow:0 0 14px rgba(148,163,184,.08);
-}
-.stop{ color:#ff9a9f; }
-.nav{ min-width:36px; padding:8px 9px; font-size:14px; }
-select{
-    min-height:36px;
-    padding:7px 28px 7px 10px;
-    color:#e5edf8;
-    background-color:#111c30;
-    border:1px solid rgba(148,163,184,.24);
-    border-radius:11px;
-    outline:none;
-}
-select:focus-visible{
-    border-color:#ff454d;
-    box-shadow:0 0 0 3px rgba(230,0,0,.13);
-}
-
-textarea{
-    display:block;
-    box-sizing:border-box;
-    width:100%;
-    height:170px;
-    border:1px solid #3b4a63;
-    border-radius:14px;
-    padding:18px 20px;
-    margin-top:20px;
-    margin-bottom:15px;
-    resize:vertical;
-    background:linear-gradient(145deg, #111c30, #0f172a);
-    color:#e5edf8;
-    font-family:Inter, "Segoe UI", system-ui, sans-serif;
-    font-size:16px;
-    line-height:1.7;
-    letter-spacing:0.1px;
-    outline:none;
-    box-shadow:inset 0 1px 3px rgba(0,0,0,.18), 0 4px 14px rgba(0,0,0,.10);
-    transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
-}
-
-textarea::placeholder{
-    color:#8291a9;
-    opacity:1;
-}
-
-textarea:hover{
-    border-color:#526783;
-}
-
-textarea:focus{
-    border-color:#60a5fa;
-    background:#101b2e;
-    box-shadow:0 0 0 3px rgba(96,165,250,.16), inset 0 1px 3px rgba(0,0,0,.15);
-}
-
-textarea::selection{
-    background:rgba(96,165,250,.4);
-    color:#ffffff;
-}
-
-.time-progress{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:12px;
-    flex-wrap:wrap;
-    margin-top:0;
-    margin-bottom:8px;
-    color:#cbd5e1;
-    font-size:13px;
-}
-
-.time-progress strong{
-    color:#ffffff;
-    font-variant-numeric:tabular-nums;
-    font-weight:700;
-}
-
-.progress{
-    width:100%;
-    height:7px;
-    background:#374151;
-    border-radius:999px;
-    margin-top:0;
-    margin-bottom:14px;
-    overflow:hidden;
-}
-
-.progress-bar{
-    width:0%;
-    height:100%;
-    background:#22c55e;
-    transition:width .1s linear;
-}
-
-
-/* Uma única área de conteúdo: edição e leitura alternam no mesmo espaço. */
-.text-stage{
-    position:relative;
-    margin-top:20px;
-    border-radius:14px;
-}
-.text-stage textarea{
-    margin-top:0;
-    margin-bottom:0;
-    height:300px;
-}
-.text-stage .reader{
-    display:none;
-    box-sizing:border-box;
-    height:300px;
-    margin:0;
-    overflow:auto;
-    background:rgba(8,18,37,.82);
-    border:1px solid rgba(96,165,250,.16);
-    border-radius:14px;
-    padding:22px 24px;
-    line-height:1.9;
-    font-size:17px;
-    color:#e5edf8;
-}
-.container.reading-mode .text-stage textarea{
-    display:none;
-}
-.container.reading-mode .text-stage .reader{
-    display:block;
-}
-.toolbar{
-    margin-top:14px;
-}
-@media (max-width:650px){
-    .toolbar{ padding:10px; gap:7px; }
-    .voice-controls{
-        width:100%;
-        margin-left:0;
-        padding-left:0;
-        padding-top:9px;
-        border-left:0;
-        border-top:1px solid rgba(148,163,184,.16);
-    }
-    .voice-controls #voz{ flex:1 1 180px; max-width:100%; }
-}
-@media (max-width:650px){
-    .text-stage textarea,
-    .text-stage .reader{
-        height:260px;
-        padding:15px;
-        font-size:15px;
-    }
-    .toolbar{
-        gap:8px;
-    }
-    .toolbar button{
-        padding:9px 12px;
-    }
-    .voice-controls{
-        flex-wrap:wrap;
-    }
-    .voice-controls #voz{
-        max-width:calc(100vw - 70px);
-    }
-}
-
-@media (max-width:650px){
-    body{padding:14px 10px; align-items:flex-start;}
-    .container{padding:17px;}
-    .app-header{align-items:flex-start; flex-direction:column; gap:12px;}
-    .brand{font-size:22px;}
-    .vodafone-mark{width:27px;height:27px;}
-    .vodafone-mark::after{width:14px;height:15px;left:8px;top:4px;}
-    .container::before{top:112px;font-size:clamp(38px, 9vw, 62px);letter-spacing:-2px;opacity:.18;}\n    .container::after{top:109px;left:calc(50% - 115px);width:34px;height:34px;border-width:9px;}
-    .toolbar select#voz{max-width:100%;}
-    .voice-controls{max-width:100%;}
-    .voice-controls #voz{max-width:calc(100vw - 150px);}
-}
-
-
-/* Ajustes de alinhamento e compactação dos controlos */
-@media (max-width: 900px) and (min-width: 651px){
-    .toolbar{flex-wrap:wrap;}
-    .voice-controls{margin-left:auto;}
-    .voice-controls #voz{width:190px; min-width:130px;}
-}
-@media (max-width:650px){
-    .toolbar{flex-wrap:wrap; gap:6px; padding:9px;}
-    .toolbar button{min-height:34px; padding:7px 9px; font-size:12px;}
-    .toolbar .nav{min-width:32px; padding:7px;}
-    .voice-controls{width:100%; margin-left:0; padding-top:8px; border-top:1px solid rgba(148,163,184,.16); flex-wrap:nowrap;}
-    .voice-controls #voz{flex:1 1 auto; width:auto; min-width:0; max-width:none;}
-    .voice-controls #velocidade{flex:0 0 82px;}
-    .time-progress{font-size:12px; gap:6px;}
-}
-
 </style>
-
-</head>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23c62828'/%3E%3Cpath d='M14 34V29a18 18 0 0 1 36 0v5' fill='none' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3Crect x='10' y='31' width='12' height='19' rx='5' fill='white'/%3E%3Crect x='42' y='31' width='12' height='19' rx='5' fill='white'/%3E%3Cpath d='M48 49q0 7-9 7h-5' fill='none' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='31' cy='56' r='3' fill='white'/%3E%3C/svg%3E">
 </head>
-
 <body>
-
 <div class="container">
-
 <header class="app-header">
-  <h1><span class="headphones" aria-hidden="true">🎧</span> Watson Reader <span class="pro">Pro</span></h1>
-  <div class="brand" aria-label="Vodafone"><span class="vodafone-mark" aria-hidden="true"></span><span>vodafone</span></div>
+<h1><span class="headphones" aria-hidden="true">🎧</span> Watson Reader <span class="pro">Pro</span></h1>
+<div class="brand" aria-label="Vodafone"><span class="vodafone-mark" aria-hidden="true"></span><span>vodafone</span></div>
 </header>
-
 <div class="time-progress" aria-live="polite">
   <span>Tempo decorrido: <strong id="elapsedTime">00:00</strong></span>
+  <span class="status-leitura" id="statusLeitura"></span>
   <span>Duração estimada: <strong id="totalTime">00:00</strong></span>
 </div>
-
-<div class="progress">
+<div class="progress" id="progressTrack" role="slider" aria-label="Progresso da leitura" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
   <div id="progressBar" class="progress-bar"></div>
 </div>
-
 <div class="text-stage" id="textStage">
-  <textarea
-      id="inputText"
-      placeholder="Cole aqui sua transcrição..."
-      aria-label="Texto para narrar"
-  ></textarea>
-
-  <div id="reader" class="reader" aria-label="Texto em leitura" aria-live="off">
-    Aguardando texto...
-  </div>
+<textarea id="inputText" placeholder="Cole aqui sua transcrição..." aria-label="Texto para narrar"></textarea>
+<div id="reader" class="reader" aria-label="Texto em leitura" aria-live="off">Aguardando texto...</div>
 </div>
-
 <div class="toolbar">
-
-<button
-class="play"
-onclick="playAudio()">
-▶ Play
-</button>
-
-<button
-class="pause"
-onclick="pauseAudio()">
-⏸ Pause
-</button>
-
-<button
-class="stop"
-onclick="stopAudio()">
-⏹ Stop
-</button>
-
-<button
-class="nav"
-onclick="fraseAnterior()">
-⏪
-</button>
-
-<button
-class="nav"
-onclick="proximaFrase()"
-aria-label="Próxima frase">
-⏩
-</button>
-
-
+<button type="button" class="play" onclick="playAudio()">▶ Play</button>
+<button type="button" class="pause" onclick="pauseAudio()">⏸ Pause</button>
+<button type="button" class="stop" onclick="stopAudio()">⏹ Stop</button>
+<button type="button" class="nav" onclick="fraseAnterior()" aria-label="Frase anterior">⏪</button>
+<button type="button" class="nav" onclick="proximaFrase()" aria-label="Próxima frase">⏩</button>
 <div class="voice-controls">
-  <select id="voz" onchange="atualizarConfiguracoesVoz()" aria-label="Escolher voz em português">
-      <option value="">A carregar vozes em português...</option>
-  </select>
 
-  <select id="velocidade" onchange="atualizarConfiguracoesVoz()" aria-label="Velocidade da leitura">
-      <option value="1" selected>1x</option>
-      <option value="1.5">1.5x</option>
-      <option value="2">2x</option>
-      <option value="2.5">2.5x</option>
-      <option value="3">3x</option>
-  </select>
+<select id="voz" onchange="atualizarConfiguracoesVoz()" aria-label="Escolher voz em português">
+  <option value="piper:pt_BR-jeff-medium" selected>Jeff — Português do Brasil (padrão)</option>
+</select>
+
+<select id="velocidade" onchange="atualizarConfiguracoesVoz()" aria-label="Velocidade da leitura"><option value="1" selected>1x</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="2.5">2.5x</option><option value="3">3x</option></select>
 </div>
-
 </div>
-
-
-
 </div>
-
-
-
-
 <script>
+"use strict";
+
 let frases = [];
+let palavrasPorFrase = [];
 let indiceAtual = 0;
-let utterance = null;
-let reproduzindo = false;
-let idReproducao = 0;
 let posicaoNoBloco = 0;
-let textoPreparado = "";
-let destacarPalavra = false;
 let inicioPalavraAtual = -1;
 let fimPalavraAtual = -1;
+let reproduzindo = false;
+let idReproducao = 0;
+let textoPreparado = "";
 let versaoTexto = 0;
 let versaoRenderizada = -1;
-let tempoDecorridoMs = 0;
-let instanteInicioRelogio = null;
 let intervaloRelogio = null;
 let leituraConcluida = false;
+let audioPiper = null;
+let pedidoPiper = null;
+let objetoUrlPiper = null;
+let estadoPiper = "parado";
+let origemAudioPiper = null;
+let palavraDestacada = null;
+let fraseDestacada = null;
+let vozAnterior = "piper:pt_BR-jeff-medium";
 
+function ehVozPiper(voz) {
+    return typeof voz === "string" && voz.startsWith("piper:");
+}
+
+const campoTexto = document.getElementById("inputText");
+const painelLeitura = document.getElementById("reader");
+const barraProgresso = document.getElementById("progressBar");
+const faixaProgresso = document.getElementById("progressTrack");
+const estadoLeitura = document.getElementById("statusLeitura");
+
+function vozAtual() {
+    return document.getElementById("voz").value;
+}
+function velocidadeAtual() {
+    return Math.max(0.1, parseFloat(document.getElementById("velocidade").value) || 1);
+}
+function definirStatus(texto) {
+    estadoLeitura.textContent = texto || "";
+}
 function formatarTempo(segundos) {
     const total = Math.max(0, Math.floor(segundos || 0));
     const horas = Math.floor(total / 3600);
     const minutos = Math.floor((total % 3600) / 60);
     const segundosRestantes = total % 60;
-    if (horas > 0) {
-        return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}:${String(segundosRestantes).padStart(2, "0")}`;
-    }
-    return `${String(minutos).padStart(2, "0")}:${String(segundosRestantes).padStart(2, "0")}`;
+    return horas > 0
+        ? `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}:${String(segundosRestantes).padStart(2, "0")}`
+        : `${String(minutos).padStart(2, "0")}:${String(segundosRestantes).padStart(2, "0")}`;
 }
-
-function calcularDuracaoEstimada() {
-    const texto = document.getElementById("inputText").value.trim();
+function tokenizarPalavras(texto) {
+    const lista = [];
+    const re = /\S+/g;
+    let match;
+    while ((match = re.exec(texto)) !== null) {
+        lista.push({ inicio: match.index, fim: match.index + match[0].length, texto: match[0] });
+    }
+    return lista;
+}
+function palavraEm(indiceFrase, posicao) {
+    const lista = palavrasPorFrase[indiceFrase] || [];
+    if (!lista.length) return null;
+    return lista.find(p => posicao >= p.inicio && posicao < p.fim)
+        || lista.find(p => posicao >= p.inicio && posicao <= p.fim)
+        || null;
+}
+function calcularDuracaoEstimadaSilenciosa() {
+    const texto = campoTexto.value.trim();
     const palavras = texto ? (texto.match(/\S+/g) || []).length : 0;
-    const velocidade = Math.max(0.1, parseFloat(document.getElementById("velocidade").value) || 1);
-    // Referência aproximada: 150 palavras/minuto a 1x; a duração real varia conforme a voz.
-    const segundos = palavras ? (palavras / (150 * velocidade)) * 60 : 0;
-    document.getElementById("totalTime").textContent = formatarTempo(segundos);
-    atualizarBarra();
-    return segundos;
+    return palavras ? (palavras / (150 * velocidadeAtual())) * 60 : 0;
 }
-
-function obterTempoDecorridoMs() {
-    return tempoDecorridoMs + (instanteInicioRelogio !== null ? Date.now() - instanteInicioRelogio : 0);
-}
-
-
 function calcularFracaoLeitura() {
-    const texto = document.getElementById("inputText").value.trim();
+    const texto = campoTexto.value.trim();
     const totalPalavras = (texto.match(/\S+/g) || []).length;
-
-    if (totalPalavras === 0) return 0;
+    if (!totalPalavras) return 0;
     if (leituraConcluida) return 1;
-
-    let textoPercorrido = "";
-
-    for (let i = 0; i < indiceAtual; i++) {
-        textoPercorrido += (frases[i] || "") + " ";
+    let percorrido = 0;
+    for (let i = 0; i < indiceAtual; i++) percorrido += (palavrasPorFrase[i] || []).length;
+    const atual = palavraEm(indiceAtual, inicioPalavraAtual >= 0 ? inicioPalavraAtual : posicaoNoBloco);
+    if (atual) {
+        const lista = palavrasPorFrase[indiceAtual] || [];
+        percorrido += Math.max(0, lista.indexOf(atual));
+    } else if (posicaoNoBloco > 0) {
+        percorrido += (palavrasPorFrase[indiceAtual] || []).filter(p => p.fim <= posicaoNoBloco).length;
     }
-
-    if (frases[indiceAtual]) {
-        const posicao = Math.max(
-            0,
-            Math.min(
-                posicaoNoBloco,
-                frases[indiceAtual].length
-            )
-        );
-
-        textoPercorrido += frases[indiceAtual].slice(0, posicao);
-    }
-
-    const palavrasPercorridas =
-        (textoPercorrido.match(/\S+/g) || []).length;
-
-    return Math.max(
-        0,
-        Math.min(1, palavrasPercorridas / totalPalavras)
-    );
+    return Math.max(0, Math.min(1, percorrido / totalPalavras));
 }
-
 function atualizarInterfaceTempo() {
     const estimado = calcularDuracaoEstimadaSilenciosa();
     const fracao = calcularFracaoLeitura();
-
-    // O tempo acompanha a posição real da leitura no texto.
-    const decorrido = estimado * fracao;
-
-    document.getElementById("elapsedTime").textContent =
-        formatarTempo(decorrido);
-
-    document.getElementById("totalTime").textContent =
-        formatarTempo(estimado);
-
-    const barra = document.getElementById("progressBar");
-
-    if (barra) {
-        barra.style.width = (fracao * 100) + "%";
-    }
+    document.getElementById("elapsedTime").textContent = formatarTempo(estimado * fracao);
+    document.getElementById("totalTime").textContent = formatarTempo(estimado);
+    barraProgresso.style.width = (fracao * 100) + "%";
+    faixaProgresso.setAttribute("aria-valuenow", String(Math.round(fracao * 100)));
 }
-
-
-function calcularDuracaoEstimadaSilenciosa() {
-    const texto = document.getElementById("inputText").value.trim();
-    const palavras = texto ? (texto.match(/\S+/g) || []).length : 0;
-    const velocidade = Math.max(0.1, parseFloat(document.getElementById("velocidade").value) || 1);
-    return palavras ? (palavras / (150 * velocidade)) * 60 : 0;
-}
-
 function iniciarRelogio() {
-    if (instanteInicioRelogio !== null) return;
     leituraConcluida = false;
-    instanteInicioRelogio = Date.now();
     if (intervaloRelogio !== null) clearInterval(intervaloRelogio);
     intervaloRelogio = setInterval(atualizarInterfaceTempo, 100);
     atualizarInterfaceTempo();
 }
-
 function pausarRelogio() {
-    if (instanteInicioRelogio !== null) {
-        tempoDecorridoMs += Date.now() - instanteInicioRelogio;
-        instanteInicioRelogio = null;
-    }
-    if (intervaloRelogio !== null) {
-        clearInterval(intervaloRelogio);
-        intervaloRelogio = null;
-    }
+    if (intervaloRelogio !== null) clearInterval(intervaloRelogio);
+    intervaloRelogio = null;
     atualizarInterfaceTempo();
 }
-
 function reiniciarRelogio(concluida = false) {
-    tempoDecorridoMs = 0;
-    instanteInicioRelogio = null;
+    if (intervaloRelogio !== null) clearInterval(intervaloRelogio);
+    intervaloRelogio = null;
     leituraConcluida = concluida;
-    if (intervaloRelogio !== null) {
-        clearInterval(intervaloRelogio);
-        intervaloRelogio = null;
+    atualizarInterfaceTempo();
+}
+function definirModoLeitura(ativar) {
+    document.querySelector(".container").classList.toggle("reading-mode", ativar);
+}
+function libertarAudioPiper() {
+    if (audioPiper) {
+        audioPiper.onplay = null;
+        audioPiper.ontimeupdate = null;
+        audioPiper.onended = null;
+        audioPiper.onerror = null;
+        audioPiper.pause();
+        try { audioPiper.currentTime = 0; } catch (e) {}
+        audioPiper = null;
     }
-    atualizarInterfaceTempo();
+    if (objetoUrlPiper) {
+        URL.revokeObjectURL(objetoUrlPiper);
+        objetoUrlPiper = null;
+    }
+    origemAudioPiper = null;
 }
-
-// Sincroniza o contador com a posição do texto ao saltar entre frases.
-
-function sincronizarRelogioComTexto() {
-    // O tempo e a barra são derivados da posição atual no texto.
-    atualizarInterfaceTempo();
+function cancelarPedidoPiper() {
+    if (pedidoPiper) {
+        pedidoPiper.abort();
+        pedidoPiper = null;
+    }
 }
+function pararMotor(opcoes = {}) {
+    const manterRelogio = !!opcoes.manterRelogio;
+    reproduzindo = false;
+    idReproducao++;
+    cancelarPedidoPiper();
+    libertarAudioPiper();
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+    estadoPiper = "parado";
+    if (!manterRelogio) pausarRelogio();
+    definirStatus("");
+}
+function podeRetomarPiper() {
+    return estadoPiper === "pausado"
+        && audioPiper
+        && audioPiper.src
+        && Number.isFinite(audioPiper.duration)
+        && audioPiper.currentTime < audioPiper.duration - 0.05
+        && origemAudioPiper
+        && origemAudioPiper.indice === indiceAtual;
+}
+function aplicarDestaque() {
+    const fraseEl = document.getElementById("frase-" + indiceAtual);
+    if (fraseDestacada && fraseDestacada !== fraseEl) fraseDestacada.classList.remove("current-sentence");
+    if (fraseEl) {
+        fraseEl.classList.add("current-sentence");
+        fraseDestacada = fraseEl;
+    } else {
+        fraseDestacada = null;
+    }
 
-function prepararTexto() {
-    const texto = document.getElementById("inputText").value.trim();
-
-    textoPreparado = texto;
-    reiniciarRelogio(false);
-    versaoTexto++;
-    frases = [];
-    indiceAtual = 0;
-    posicaoNoBloco = 0;
-
-    if (!texto) {
-        atualizarTexto();
-        atualizarBarra();
+    let palavraEl = null;
+    if (fraseEl && inicioPalavraAtual >= 0) {
+        palavraEl = fraseEl.querySelector(`.word[data-inicio="${inicioPalavraAtual}"]`);
+        if (!palavraEl) {
+            const token = palavraEm(indiceAtual, inicioPalavraAtual);
+            if (token) palavraEl = fraseEl.querySelector(`.word[data-inicio="${token.inicio}"]`);
+        }
+    }
+    if (palavraDestacada && palavraDestacada !== palavraEl) palavraDestacada.classList.remove("current");
+    if (palavraEl) {
+        palavraEl.classList.add("current");
+        palavraDestacada = palavraEl;
+        const area = painelLeitura.getBoundingClientRect();
+        const caixa = palavraEl.getBoundingClientRect();
+        if (caixa.bottom > area.bottom - 8 || caixa.top < area.top + 8) {
+            palavraEl.scrollIntoView({ behavior: "auto", block: "nearest" });
+        }
+    } else {
+        palavraDestacada = null;
+    }
+}
+function renderizarLeitura() {
+    if (versaoRenderizada === versaoTexto) {
+        aplicarDestaque();
+        atualizarInterfaceTempo();
         return;
     }
-
+    palavraDestacada = null;
+    fraseDestacada = null;
+    painelLeitura.replaceChildren();
+    if (!frases.length) {
+        painelLeitura.textContent = "Aguardando texto...";
+        versaoRenderizada = versaoTexto;
+        atualizarInterfaceTempo();
+        return;
+    }
+    const fragmento = document.createDocumentFragment();
+    frases.forEach((frase, index) => {
+        const spanFrase = document.createElement("span");
+        spanFrase.id = "frase-" + index;
+        spanFrase.className = "sentence";
+        spanFrase.dataset.index = String(index);
+        const palavras = palavrasPorFrase[index] || [];
+        let cursor = 0;
+        palavras.forEach(palavra => {
+            if (palavra.inicio > cursor) {
+                spanFrase.appendChild(document.createTextNode(frase.slice(cursor, palavra.inicio)));
+            }
+            const spanPalavra = document.createElement("span");
+            spanPalavra.className = "word";
+            spanPalavra.dataset.inicio = String(palavra.inicio);
+            spanPalavra.dataset.fim = String(palavra.fim);
+            spanPalavra.textContent = palavra.texto;
+            spanFrase.appendChild(spanPalavra);
+            cursor = palavra.fim;
+        });
+        if (cursor < frase.length) spanFrase.appendChild(document.createTextNode(frase.slice(cursor)));
+        fragmento.appendChild(spanFrase);
+        fragmento.appendChild(document.createTextNode(" "));
+    });
+    painelLeitura.appendChild(fragmento);
+    versaoRenderizada = versaoTexto;
+    aplicarDestaque();
+    atualizarInterfaceTempo();
+}
+function prepararTexto() {
+    const texto = campoTexto.value.trim();
+    textoPreparado = texto;
+    frases = [];
+    palavrasPorFrase = [];
+    indiceAtual = 0;
+    posicaoNoBloco = 0;
+    inicioPalavraAtual = -1;
+    fimPalavraAtual = -1;
+    leituraConcluida = false;
+    versaoTexto++;
+    if (!texto) {
+        renderizarLeitura();
+        return;
+    }
     const partes = texto.match(/[^.!?…]+(?:[.!?…]+["'”’)\]]*|$)/g) || [];
     const tamanhoMaximo = 500;
-    let bloco = "";
-
     partes.forEach(parte => {
         parte = parte.trim();
         if (!parte) return;
-
-        if (bloco && bloco.length + parte.length + 1 > tamanhoMaximo) {
-            frases.push(bloco.trim());
-            bloco = parte;
-        } else {
-            bloco += (bloco ? " " : "") + parte;
+        if (parte.length <= tamanhoMaximo) {
+            frases.push(parte);
+            return;
         }
+        let restante = parte;
+        while (restante.length > tamanhoMaximo) {
+            let corte = restante.lastIndexOf(" ", tamanhoMaximo);
+            if (corte < tamanhoMaximo * 0.5) corte = tamanhoMaximo;
+            frases.push(restante.slice(0, corte).trim());
+            restante = restante.slice(corte).trim();
+        }
+        if (restante) frases.push(restante);
     });
-
-    if (bloco.trim()) {
-        frases.push(bloco.trim());
-    }
-
-    atualizarTexto();
-    atualizarBarra();
+    palavrasPorFrase = frases.map(tokenizarPalavras);
+    renderizarLeitura();
 }
-
-
-
-
-
-function atualizarTexto() {
-    const reader = document.getElementById("reader");
-
-    // Reconstrói o leitor apenas quando o texto muda.
-    if (versaoRenderizada !== versaoTexto) {
-        reader.innerHTML = "";
-
-        frases.forEach((frase, index) => {
-            const span = document.createElement("span");
-            span.id = "frase-" + index;
-            span.style.cursor = "text";
-            span.title = "Clique numa palavra para começar a ler daqui";
-            span.textContent = frase;
-
-            span.addEventListener("click", (evento) => {
-                let range = null;
-
-                if (document.caretRangeFromPoint) {
-                    range = document.caretRangeFromPoint(
-                        evento.clientX,
-                        evento.clientY
-                    );
-                } else if (document.caretPositionFromPoint) {
-                    const ponto = document.caretPositionFromPoint(
-                        evento.clientX,
-                        evento.clientY
-                    );
-
-                    if (ponto) {
-                        range = document.createRange();
-                        range.setStart(ponto.offsetNode, ponto.offset);
-                        range.collapse(true);
-                    }
-                }
-
-                if (!range || !span.contains(range.startContainer)) return;
-
-                const prefixo = document.createRange();
-                prefixo.selectNodeContents(span);
-                prefixo.setEnd(range.startContainer, range.startOffset);
-
-                const posicao = Math.min(prefixo.toString().length, frase.length);
-                let inicio = posicao;
-                while (inicio > 0 && !/\s/.test(frase[inicio - 1])) inicio--;
-
-                let fim = posicao;
-                while (fim < frase.length && !/\s/.test(frase[fim])) fim++;
-
-                reproduzindo = false;
-                idReproducao++;
-                speechSynthesis.cancel();
-                indiceAtual = index;
-                posicaoNoBloco = posicao;
-                inicioPalavraAtual = inicio;
-                fimPalavraAtual = fim;
-                atualizarTexto();
-                atualizarBarra();
-            });
-
-            reader.appendChild(span);
-            reader.appendChild(document.createTextNode(" "));
-        });
-
-        versaoRenderizada = versaoTexto;
-    }
-
-    // Atualiza apenas as frases que precisam de mudar o destaque.
-    frases.forEach((frase, index) => {
-        const span = document.getElementById("frase-" + index);
-        if (!span) return;
-
-        const temDestaque = span.classList.contains("highlight") ||
-            !!span.querySelector(".highlight");
-        const eAtual = index === indiceAtual;
-
-        if (eAtual || temDestaque) {
-            span.innerHTML = "";
-            span.classList.remove("highlight");
-
-            const inicio = inicioPalavraAtual;
-            const fim = fimPalavraAtual;
-
-            if (eAtual && inicio >= 0 && fim > inicio) {
-                span.appendChild(document.createTextNode(frase.slice(0, inicio)));
-                const palavra = document.createElement("span");
-                palavra.className = "highlight";
-                palavra.textContent = frase.slice(inicio, fim);
-                span.appendChild(palavra);
-                span.appendChild(document.createTextNode(frase.slice(fim)));
-            } else {
-                span.textContent = frase;
-                if (eAtual && !reproduzindo) span.classList.add("highlight");
-            }
-        }
-    });
-
-    // Só desloca o leitor se a palavra destacada sair da área visível.
-    const palavraAtual = document.querySelector("#frase-" + indiceAtual + " .highlight");
-    if (reproduzindo && palavraAtual) {
-        const area = reader.getBoundingClientRect();
-        const palavra = palavraAtual.getBoundingClientRect();
-        if (palavra.bottom > area.bottom || palavra.top < area.top) {
-            palavraAtual.scrollIntoView({ behavior: "auto", block: "nearest" });
-        }
-    }
+function garantirTextoPreparado() {
+    const textoAtual = campoTexto.value.trim();
+    if (!textoAtual) return false;
+    if (textoAtual !== textoPreparado || !frases.length) prepararTexto();
+    return frases.length > 0;
 }
-
-
-
-
-function definirModoLeitura(ativar) {
-    const container = document.querySelector(".container");
-    if (container) container.classList.toggle("reading-mode", ativar);
+function definirCursor(indice, inicio, fim) {
+    indiceAtual = indice;
+    const token = palavraEm(indice, inicio);
+    if (token) {
+        posicaoNoBloco = token.inicio;
+        inicioPalavraAtual = token.inicio;
+        fimPalavraAtual = token.fim;
+    } else {
+        posicaoNoBloco = inicio;
+        inicioPalavraAtual = inicio;
+        fimPalavraAtual = typeof fim === "number" ? fim : inicio;
+    }
+    leituraConcluida = false;
+}
+function palavraGlobalPorIndice(indicePalavra) {
+    let acumulado = 0;
+    for (let i = 0; i < palavrasPorFrase.length; i++) {
+        const lista = palavrasPorFrase[i];
+        if (indicePalavra < acumulado + lista.length) {
+            return { indiceFrase: i, palavra: lista[indicePalavra - acumulado] };
+        }
+        acumulado += lista.length;
+    }
+    const ultimaFrase = palavrasPorFrase.length - 1;
+    const lista = palavrasPorFrase[ultimaFrase] || [];
+    return lista.length ? { indiceFrase: ultimaFrase, palavra: lista[lista.length - 1] } : null;
+}
+function saltarPara(indice, inicio, opcoes = {}) {
+    if (!garantirTextoPreparado()) return;
+    const estavaTocando = reproduzindo || estadoPiper === "gerando";
+    origemAudioPiper = null;
+    pararMotor();
+    definirCursor(indice, inicio);
+    definirModoLeitura(true);
+    renderizarLeitura();
+    if (estavaTocando || opcoes.reproduzir) playAudio();
+}
+function totalPalavras() {
+    return palavrasPorFrase.reduce((soma, lista) => soma + lista.length, 0);
+}
+function saltarPorFracao(fracao) {
+    if (!garantirTextoPreparado()) return;
+    const total = totalPalavras();
+    if (!total) return;
+    const indicePalavra = Math.max(0, Math.min(total - 1, Math.floor(fracao * total)));
+    const alvo = palavraGlobalPorIndice(indicePalavra);
+    if (!alvo) return;
+    saltarPara(alvo.indiceFrase, alvo.palavra.inicio);
 }
 
 function playAudio() {
-    const textoAtual = document
-        .getElementById("inputText")
-        .value.trim();
-
-    if (!textoAtual) {
+    if (!garantirTextoPreparado()) {
         stopAudio();
-        frases = [];
-        textoPreparado = "";
+        return;
+    }
+    if (leituraConcluida || (indiceAtual >= frases.length - 1 && posicaoNoBloco >= (frases[indiceAtual] || "").length && estadoPiper !== "pausado")) {
         indiceAtual = 0;
         posicaoNoBloco = 0;
-        atualizarTexto();
-        atualizarBarra();
-        return;
+        inicioPalavraAtual = -1;
+        fimPalavraAtual = -1;
+        leituraConcluida = false;
+        renderizarLeitura();
     }
-
-    if (textoAtual !== textoPreparado) {
-        stopAudio();
-        prepararTexto();
-    }
-
-    if (frases.length === 0) return;
-
-    // A leitura passa a ocupar a área principal quando o utilizador carrega em Play.
-    atualizarTexto();
     definirModoLeitura(true);
 
-    const minhaReproducao = ++idReproducao;
-
-    speechSynthesis.cancel();
-    reproduzindo = true;
-    iniciarRelogio();
-
-    lerBloco(minhaReproducao);
-}
-
-
-
-function lerBloco(minhaReproducao) {
-    if (
-        minhaReproducao !== idReproducao ||
-        !reproduzindo ||
-        indiceAtual >= frases.length
-    ) {
-        return;
-    }
-
-    const textoCompleto = frases[indiceAtual];
-
-    // Guarda a posição inicial deste trecho de áudio.
-    const inicioTrecho = posicaoNoBloco;
-
-    // Lê somente o texto que ainda não foi pronunciado.
-    const textoRestante = textoCompleto.slice(inicioTrecho);
-
-    if (!textoRestante.trim()) {
-        posicaoNoBloco = 0;
-
-        if (indiceAtual < frases.length - 1) {
-            indiceAtual++;
-            atualizarTexto();
-            atualizarBarra();
-            lerBloco(minhaReproducao);
-        } else {
-            reproduzindo = false;
-            pausarRelogio();
-            leituraConcluida = true;
-            atualizarInterfaceTempo();
-            atualizarBarra();
-        }
-
-        return;
-    }
-
-    utterance = new SpeechSynthesisUtterance(textoRestante);
-
-    const vozes = speechSynthesis.getVoices();
-    const vozSelecionada = document.getElementById("voz").value;
-
-    const voz = vozes.find(v => {
-        const chave = `${v.name}|${v.lang}|${v.voiceURI}`;
-        return chave === vozSelecionada;
-    }) || vozes.find(v =>
-        v.lang && v.lang.toLowerCase() === "pt-pt"
-    ) || vozes.find(v =>
-        v.lang && v.lang.toLowerCase() === "pt-br"
-    ) || vozes.find(v =>
-        v.lang && v.lang.toLowerCase().startsWith("pt")
-    );
-
-    if (voz) {
-        utterance.voice = voz;
-        utterance.lang = voz.lang;
-    } else {
-        // Mantém um idioma de recurso caso não exista voz portuguesa instalada.
-        utterance.lang = "pt-BR";
-    }
-
-    utterance.rate = parseFloat(
-        document.getElementById("velocidade").value
-    );
-
-    utterance.onstart = () => {
-        if (minhaReproducao === idReproducao) {
-            atualizarTexto();
-            atualizarBarra();
-        }
-    };
-
-    // Atualiza a posição conforme a voz avança pelas palavras.
-   
-utterance.onboundary = (evento) => {
-    if (
-        minhaReproducao !== idReproducao ||
-        !reproduzindo
-    ) {
-        return;
-    }
-
-    if (evento.name === "word" || evento.charLength > 0) {
-        const inicio = Math.max(
-    inicioTrecho,
-    Math.min(inicioTrecho + evento.charIndex, textoCompleto.length - 1)
-);
-
-        // Determina o tamanho da palavra pronunciada.
-        const restante = textoCompleto.slice(inicio);
-        const correspondencia = restante.match(/^\S+/);
-
-        const tamanho = evento.charLength > 0
-            ? evento.charLength
-            : correspondencia
-                ? correspondencia[0].length
-                : 1;
-
-        inicioPalavraAtual = inicio;
-        fimPalavraAtual = Math.min(
-            inicio + tamanho,
-            textoCompleto.length
-        );
-
-        // Guarda a posição para permitir continuar a leitura.
-        posicaoNoBloco = fimPalavraAtual;
-
-        // Atualiza o destaque e acompanha o texto.
-        atualizarTexto();
-        atualizarBarra();
-    }
-};
-
-
-    utterance.onend = () => {
-        if (
-            minhaReproducao !== idReproducao ||
-            !reproduzindo
-        ) {
+	if (ehVozPiper(vozAtual())) {
+        if (reproduzindo && estadoPiper === "tocando") return;
+        if (podeRetomarPiper()) {
+            reproduzindo = true;
+            estadoPiper = "tocando";
+            iniciarRelogio();
+            definirStatus("A reproduzir");
+            audioPiper.playbackRate = velocidadeAtual();
+            audioPiper.play().catch(erro => {
+                console.error("Erro ao retomar o Piper:", erro);
+                reproduzindo = false;
+                estadoPiper = "pausado";
+                pausarRelogio();
+                definirStatus("Pausado");
+            });
             return;
         }
+        reproduzindo = true;
+        estadoPiper = "gerando";
+        iniciarRelogio();
+        const minha = ++idReproducao;
+        cancelarPedidoPiper();
+        libertarAudioPiper();
+        lerBlocoPiper(minha);
+        return;
+    }
 
-        // O bloco atual terminou.
+    if (reproduzindo) return;
+    const minha = ++idReproducao;
+    speechSynthesis.cancel();
+    cancelarPedidoPiper();
+    libertarAudioPiper();
+    reproduzindo = true;
+    iniciarRelogio();
+    definirStatus("A reproduzir");
+    lerBloco(minha);
+}
+async function lerBlocoPiper(minha) {
+    if (minha !== idReproducao || !reproduzindo || indiceAtual >= frases.length) return;
+    const frase = frases[indiceAtual];
+    const inicioTrecho = Math.max(0, Math.min(posicaoNoBloco, frase.length));
+    const restante = frase.slice(inicioTrecho);
+    if (!restante.trim()) {
+        avancarBlocoPiper(minha);
+        return;
+    }
+    try {
+        const controller = new AbortController();
+        pedidoPiper = controller;
+        estadoPiper = "gerando";
+        definirStatus("A gerar áudio...");
+        const resposta = await fetch("http://127.0.0.1:8765/synthesize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+			text: restante,
+			voice: vozAtual().slice("piper:".length)
+		}),
+            signal: controller.signal
+        });
+        if (!resposta.ok) throw new Error("O servidor Piper respondeu com o código " + resposta.status);
+        const blob = await resposta.blob();
+        if (minha !== idReproducao || !reproduzindo) return;
+        if (pedidoPiper === controller) pedidoPiper = null;
+        libertarAudioPiper();
+        objetoUrlPiper = URL.createObjectURL(blob);
+        const esteAudio = new Audio(objetoUrlPiper);
+        audioPiper = esteAudio;
+        origemAudioPiper = { indice: indiceAtual, inicio: inicioTrecho };
+        esteAudio.playbackRate = velocidadeAtual();
+
+        const palavrasSync = [];
+        const rePalavra = /\S+/g;
+        let matchSync;
+        while ((matchSync = rePalavra.exec(restante)) !== null) {
+            const palavra = matchSync[0];
+            const vogais = palavra.toLocaleLowerCase().match(/[aeiouáéíóúâêôãõü]+/g) || [];
+            const seguinte = restante.slice(matchSync.index + palavra.length, matchSync.index + palavra.length + 2);
+            const peso = Math.max(1, vogais.length) + (/[,:;]/.test(seguinte) ? 0.35 : 0) + (/[.!?…]/.test(seguinte) ? 0.8 : 0);
+            palavrasSync.push({ inicio: matchSync.index, fim: matchSync.index + palavra.length, peso });
+        }
+        const pesoTotal = palavrasSync.reduce((s, p) => s + p.peso, 0) || 1;
+
+        esteAudio.ontimeupdate = () => {
+            if (minha !== idReproducao || !reproduzindo || audioPiper !== esteAudio || !Number.isFinite(esteAudio.duration) || esteAudio.duration <= 0) return;
+            const fracao = Math.min(esteAudio.currentTime / esteAudio.duration, 0.999);
+            const alvo = fracao * pesoTotal;
+            let acumulado = 0;
+            let atual = palavrasSync[palavrasSync.length - 1];
+            for (const p of palavrasSync) {
+                if (alvo < acumulado + p.peso) { atual = p; break; }
+                acumulado += p.peso;
+            }
+            if (atual) definirCursor(indiceAtual, inicioTrecho + atual.inicio, inicioTrecho + atual.fim);
+            else definirCursor(indiceAtual, Math.min(frase.length, inicioTrecho + restante.length));
+            aplicarDestaque();
+            atualizarInterfaceTempo();
+        };
+        esteAudio.onplay = () => {
+            if (minha === idReproducao) {
+                estadoPiper = "tocando";
+                definirStatus("A reproduzir");
+                aplicarDestaque();
+            }
+        };
+        esteAudio.onended = () => {
+            if (minha !== idReproducao || !reproduzindo) return;
+            audioPiper = null;
+            origemAudioPiper = null;
+            if (objetoUrlPiper) {
+                URL.revokeObjectURL(objetoUrlPiper);
+                objetoUrlPiper = null;
+            }
+            avancarBlocoPiper(minha);
+        };
+        esteAudio.onerror = () => {
+            if (minha === idReproducao) {
+                reproduzindo = false;
+                estadoPiper = "parado";
+                pausarRelogio();
+                definirStatus("Erro no áudio");
+                console.error("Erro ao reproduzir o áudio do Piper.");
+            }
+        };
+        await esteAudio.play();
+    } catch (erro) {
+        if (erro.name === "AbortError") return;
+        if (minha === idReproducao) {
+            reproduzindo = false;
+            estadoPiper = "parado";
+            pausarRelogio();
+            definirStatus("Piper indisponível");
+            console.error("Erro no Piper:", erro);
+            alert("Não foi possível reproduzir a voz Piper. Confirme que o servidor local continua aberto.");
+        }
+    }
+}
+function avancarBlocoPiper(minha) {
+    if (minha !== idReproducao || !reproduzindo) return;
+    if (indiceAtual < frases.length - 1) {
+        indiceAtual++;
         posicaoNoBloco = 0;
-
+        inicioPalavraAtual = -1;
+        fimPalavraAtual = -1;
+        const primeira = (palavrasPorFrase[indiceAtual] || [])[0];
+        if (primeira) definirCursor(indiceAtual, primeira.inicio, primeira.fim);
+        renderizarLeitura();
+        lerBlocoPiper(minha);
+    } else {
+        reproduzindo = false;
+        estadoPiper = "parado";
+        posicaoNoBloco = frases[indiceAtual]?.length || 0;
+        leituraConcluida = true;
+        pausarRelogio();
+        atualizarInterfaceTempo();
+        aplicarDestaque();
+        definirStatus("Concluído");
+    }
+}
+function lerBloco(minha) {
+    if (minha !== idReproducao || !reproduzindo || indiceAtual >= frases.length) return;
+    const frase = frases[indiceAtual];
+    const inicioTrecho = Math.max(0, Math.min(posicaoNoBloco, frase.length));
+    const restante = frase.slice(inicioTrecho);
+    if (!restante.trim()) {
+        posicaoNoBloco = 0;
         if (indiceAtual < frases.length - 1) {
             indiceAtual++;
-            atualizarTexto();
-            atualizarBarra();
-            lerBloco(minhaReproducao);
+            renderizarLeitura();
+            lerBloco(minha);
         } else {
             reproduzindo = false;
-            pausarRelogio();
             leituraConcluida = true;
+            pausarRelogio();
             atualizarInterfaceTempo();
-            atualizarBarra();
+            definirStatus("Concluído");
+        }
+        return;
+    }
+    if (ehVozPiper(vozAtual())) {
+        lerBlocoPiper(minha);
+        return;
+    }
+    const utterance = new SpeechSynthesisUtterance(restante);
+    const vozes = speechSynthesis.getVoices();
+    const chave = vozAtual();
+    const voz = vozes.find(v => v.localService === true && `${v.name}|${v.lang}|${v.voiceURI}` === chave && v.lang && v.lang.toLowerCase().startsWith("pt"));
+    if (!voz) {
+        reproduzindo = false;
+        pausarRelogio();
+        definirStatus("Sem voz PT");
+        alert("Não foi encontrada uma voz local em português. Verifique as vozes disponíveis no navegador.");
+        return;
+    }
+    utterance.voice = voz;
+    utterance.lang = voz.lang;
+    utterance.rate = velocidadeAtual();
+    utterance.onstart = () => {
+        if (minha === idReproducao) {
+            definirStatus("A reproduzir");
+            aplicarDestaque();
         }
     };
-
-    utterance.onerror = (evento) => {
-        if (
-            minhaReproducao === idReproducao &&
-            evento.error !== "canceled" &&
-            evento.error !== "interrupted"
-        ) {
+    utterance.onboundary = evento => {
+        if (minha !== idReproducao || !reproduzindo) return;
+        if (evento.name === "word" || evento.charLength > 0) {
+            const inicio = Math.max(inicioTrecho, Math.min(inicioTrecho + evento.charIndex, frase.length - 1));
+            const token = palavraEm(indiceAtual, inicio);
+            if (token) definirCursor(indiceAtual, token.inicio, token.fim);
+            else {
+                const match = frase.slice(inicio).match(/^\S+/);
+                const tamanho = evento.charLength > 0 ? evento.charLength : (match ? match[0].length : 1);
+                definirCursor(indiceAtual, inicio, Math.min(inicio + tamanho, frase.length));
+            }
+            aplicarDestaque();
+            atualizarInterfaceTempo();
+        }
+    };
+    utterance.onend = () => {
+        if (minha !== idReproducao || !reproduzindo) return;
+        posicaoNoBloco = 0;
+        inicioPalavraAtual = -1;
+        fimPalavraAtual = -1;
+        if (indiceAtual < frases.length - 1) {
+            indiceAtual++;
+            renderizarLeitura();
+            lerBloco(minha);
+        } else {
+            reproduzindo = false;
+            leituraConcluida = true;
+            pausarRelogio();
+            atualizarInterfaceTempo();
+            definirStatus("Concluído");
+        }
+    };
+    utterance.onerror = evento => {
+        if (minha === idReproducao && evento.error !== "canceled" && evento.error !== "interrupted") {
             reproduzindo = false;
             pausarRelogio();
+            definirStatus("Erro na leitura");
             console.error("Erro na leitura:", evento.error);
         }
     };
-
     speechSynthesis.speak(utterance);
 }
 function pauseAudio() {
-    if (speechSynthesis.speaking && !speechSynthesis.paused) {
-        speechSynthesis.pause();
-        pausarRelogio();
+    if (!reproduzindo && estadoPiper !== "gerando" && estadoPiper !== "tocando") return;
+    if (ehVozPiper(vozAtual())) {
+        if (audioPiper && !audioPiper.paused && reproduzindo) {
+            audioPiper.pause();
+            reproduzindo = false;
+            estadoPiper = "pausado";
+            pausarRelogio();
+            definirStatus("Pausado");
+            return;
+        }
+        if (reproduzindo && estadoPiper === "gerando") {
+            reproduzindo = false;
+            idReproducao++;
+            cancelarPedidoPiper();
+            estadoPiper = "pausado";
+            origemAudioPiper = null;
+            pausarRelogio();
+            definirStatus("Pausado");
+        }
+        return;
     }
-}
-
-function stopAudio() {
+    if (!reproduzindo) return;
     reproduzindo = false;
     idReproducao++;
     speechSynthesis.cancel();
+    pausarRelogio();
+    definirStatus("Pausado");
+}
+function stopAudio() {
+    pararMotor();
+    indiceAtual = 0;
+    posicaoNoBloco = 0;
+    inicioPalavraAtual = -1;
+    fimPalavraAtual = -1;
+    leituraConcluida = false;
     reiniciarRelogio(false);
-
-    // Mantém o bloco atual selecionado.
-    atualizarTexto();
-    atualizarBarra();
+    definirModoLeitura(false);
+    renderizarLeitura();
+    campoTexto.focus();
+}
+function atualizarConfiguracoesVoz() {
+    atualizarInterfaceTempo();
+    const voz = vozAtual();
+    const velocidade = velocidadeAtual();
+    if (audioPiper && ehVozPiper(voz)) audioPiper.playbackRate = velocidade;
+    const mudouVoz = voz !== vozAnterior;
+    vozAnterior = voz;
+    if (!reproduzindo) return;
+    if (!mudouVoz && ehVozPiper(voz) && audioPiper) return;
+    const minha = ++idReproducao;
+    cancelarPedidoPiper();
+    libertarAudioPiper();
+    speechSynthesis.cancel();
+    if (ehVozPiper(voz)) {
+        estadoPiper = "gerando";
+        lerBlocoPiper(minha);
+    } else {
+        setTimeout(() => {
+            if (minha === idReproducao && reproduzindo) lerBloco(minha);
+        }, 80);
+    }
+}
+function proximaFrase() {
+    if (!garantirTextoPreparado()) return;
+    if (indiceAtual < frases.length - 1) {
+        const estavaTocando = reproduzindo || estadoPiper === "gerando";
+        pararMotor({ manterRelogio: estavaTocando });
+        indiceAtual++;
+        posicaoNoBloco = 0;
+        inicioPalavraAtual = -1;
+        fimPalavraAtual = -1;
+        leituraConcluida = false;
+        const primeira = (palavrasPorFrase[indiceAtual] || [])[0];
+        if (primeira) definirCursor(indiceAtual, primeira.inicio, primeira.fim);
+        definirModoLeitura(true);
+        renderizarLeitura();
+        if (estavaTocando) playAudio();
+    }
+}
+function fraseAnterior() {
+    if (!garantirTextoPreparado()) return;
+    if (indiceAtual > 0) {
+        const estavaTocando = reproduzindo || estadoPiper === "gerando";
+        pararMotor({ manterRelogio: estavaTocando });
+        indiceAtual--;
+        posicaoNoBloco = 0;
+        inicioPalavraAtual = -1;
+        fimPalavraAtual = -1;
+        leituraConcluida = false;
+        const primeira = (palavrasPorFrase[indiceAtual] || [])[0];
+        if (primeira) definirCursor(indiceAtual, primeira.inicio, primeira.fim);
+        definirModoLeitura(true);
+        renderizarLeitura();
+        if (estavaTocando) playAudio();
+    }
 }
 
+async function atualizarListaVozes() {
+    const select = document.getElementById("voz");
+    const anterior = select.value || "piper:pt_BR-jeff-medium";
 
+    select.replaceChildren();
 
-function atualizarConfiguracoesVoz() {
-    calcularDuracaoEstimada();
-    atualizarInterfaceTempo();
-    if (!reproduzindo) return;
-
-    // Invalida a reprodução anterior.
-    idReproducao++;
-    const minhaReproducao = idReproducao;
-
-    // Interrompe o áudio atual.
-    speechSynthesis.cancel();
-
-    // Aguarda o cancelamento antes de iniciar a nova voz.
-    setTimeout(() => {
-        if (
-            minhaReproducao !== idReproducao ||
-            !reproduzindo
-        ) {
+    const adicionar = (valor, texto) => {
+        // Evita adicionar a mesma voz mais de uma vez.
+        if (Array.from(select.options).some(opcao => opcao.value === valor)) {
             return;
         }
 
-        lerBloco(minhaReproducao);
-    }, 100);
-}
-
-
-
-
-function proximaFrase() {
-    if (frases.length === 0) {
-        prepararTexto();
-    }
-
-    if (indiceAtual < frases.length - 1) {
-        indiceAtual++;
-        reiniciarNoBlocoAtual();
-    }
-}
-
-function fraseAnterior() {
-    if (indiceAtual > 0) {
-        indiceAtual--;
-        reiniciarNoBlocoAtual();
-    }
-}
-
-function reiniciarNoBlocoAtual() {
-    const estavaTocando = reproduzindo;
-
-    idReproducao++;
-    speechSynthesis.cancel();
-    posicaoNoBloco = 0;
-    sincronizarRelogioComTexto();
-    atualizarTexto();
-    atualizarBarra();
-
-    if (estavaTocando) {
-        reproduzindo = true;
-        const minhaReproducao = idReproducao;
-        lerBloco(minhaReproducao);
-    }
-}
-
-
-function atualizarBarra() {
-    atualizarInterfaceTempo();
-}
-
-
-// Preenche o seletor com as vozes portuguesas disponíveis no navegador/sistema.
-function atualizarListaVozes() {
-    if (!("speechSynthesis" in window)) return;
-
-    const seletor = document.getElementById("voz");
-    const valorAnterior = seletor.value;
-    const todasAsVozes = speechSynthesis.getVoices();
-
-    const vozesPortuguesas = todasAsVozes
-        .filter(v => v.lang && v.lang.toLowerCase().startsWith("pt"))
-        .sort((a, b) => {
-            // Mostra primeiro PT-PT e PT-BR, sem excluir outras variantes portuguesas.
-            const prioridade = lang => {
-                const codigo = (lang || "").toLowerCase();
-                if (codigo === "pt-pt") return 0;
-                if (codigo === "pt-br") return 1;
-                return 2;
-            };
-            return prioridade(a.lang) - prioridade(b.lang)
-                || a.name.localeCompare(b.name);
-        });
-
-    seletor.innerHTML = "";
-
-    if (vozesPortuguesas.length === 0) {
         const opcao = document.createElement("option");
-        opcao.value = "";
-        opcao.textContent = "Nenhuma voz em português encontrada";
-        seletor.appendChild(opcao);
+        opcao.value = valor;
+        opcao.textContent = texto;
+        select.appendChild(opcao);
+    };
+
+    try {
+        const resposta = await fetch("http://127.0.0.1:8765/voices");
+
+        if (!resposta.ok) {
+            throw new Error("Erro HTTP " + resposta.status);
+        }
+
+        const dados = await resposta.json();
+
+        dados.voices.forEach(voz => {
+            const padrao = voz.id === dados.default_voice;
+
+            adicionar(
+                "piper:" + voz.id,
+                voz.name + (padrao ? " (padrão)" : "")
+            );
+        });
+    } catch (erro) {
+        console.error("Não foi possível carregar as vozes Piper:", erro);
+
+        adicionar(
+            "piper:pt_BR-jeff-medium",
+            "Jeff — Português do Brasil (padrão)"
+        );
+    }
+
+    const existe = Array.from(select.options)
+        .some(opcao => opcao.value === anterior);
+
+    select.value = existe
+        ? anterior
+        : "piper:pt_BR-jeff-medium";
+
+    vozAnterior = select.value;
+}
+
+
+painelLeitura.addEventListener("click", evento => {
+    const palavraEl = evento.target.closest(".word");
+    if (!palavraEl || !painelLeitura.contains(palavraEl)) return;
+    const fraseEl = palavraEl.closest(".sentence");
+    if (!fraseEl) return;
+    saltarPara(Number(fraseEl.dataset.index), Number(palavraEl.dataset.inicio));
+});
+faixaProgresso.addEventListener("click", evento => {
+    const caixa = faixaProgresso.getBoundingClientRect();
+    if (!caixa.width) return;
+    saltarPorFracao(Math.max(0, Math.min(1, (evento.clientX - caixa.left) / caixa.width)));
+});
+faixaProgresso.addEventListener("keydown", evento => {
+    if (evento.key !== "ArrowLeft" && evento.key !== "ArrowRight") return;
+    evento.preventDefault();
+    const delta = evento.key === "ArrowRight" ? 0.05 : -0.05;
+    saltarPorFracao(Math.max(0, Math.min(1, calcularFracaoLeitura() + delta)));
+});
+document.addEventListener("keydown", evento => {
+    const alvo = evento.target;
+    const aEscrever = alvo && (alvo.tagName === "TEXTAREA" || alvo.tagName === "INPUT" || alvo.tagName === "SELECT" || alvo.isContentEditable);
+    if ((evento.ctrlKey || evento.metaKey) && evento.key.toLowerCase() === "a") {
+        const container = document.querySelector(".container");
+        if (container.classList.contains("reading-mode") && document.activeElement !== campoTexto) {
+            evento.preventDefault();
+            stopAudio();
+            campoTexto.focus();
+            campoTexto.select();
+        }
         return;
     }
-
-    vozesPortuguesas.forEach(voz => {
-        const opcao = document.createElement("option");
-        opcao.value = `${voz.name}|${voz.lang}|${voz.voiceURI}`;
-        opcao.textContent = `${voz.name} (${voz.lang})`;
-        seletor.appendChild(opcao);
-    });
-
-    if (vozesPortuguesas.some(v => `${v.name}|${v.lang}|${v.voiceURI}` === valorAnterior)) {
-        seletor.value = valorAnterior;
-    } else {
-        // Escolhe PT-PT primeiro; se não existir, PT-BR; depois outra voz portuguesa.
-        const preferida = vozesPortuguesas.find(v => v.lang.toLowerCase() === "pt-pt")
-            || vozesPortuguesas.find(v => v.lang.toLowerCase() === "pt-br")
-            || vozesPortuguesas[0];
-        seletor.value = `${preferida.name}|${preferida.lang}|${preferida.voiceURI}`;
+    if (aEscrever) return;
+    if (evento.code === "Space" || evento.key === "k") {
+        evento.preventDefault();
+        if (reproduzindo || estadoPiper === "gerando" || estadoPiper === "tocando") pauseAudio();
+        else playAudio();
+    } else if (evento.key === "ArrowLeft") {
+        evento.preventDefault();
+        fraseAnterior();
+    } else if (evento.key === "ArrowRight") {
+        evento.preventDefault();
+        proximaFrase();
     }
-}
-
-// Algumas vozes só ficam disponíveis depois de o navegador as carregar.
+});
 if ("speechSynthesis" in window) {
     atualizarListaVozes();
     speechSynthesis.onvoiceschanged = atualizarListaVozes;
 }
-
-document.getElementById("inputText").addEventListener("input", () => {
-    if (!reproduzindo) reiniciarRelogio(false);
-    calcularDuracaoEstimada();
+campoTexto.addEventListener("input", () => {
+    if (reproduzindo || estadoPiper === "gerando" || estadoPiper === "tocando" || estadoPiper === "pausado") stopAudio();
+    textoPreparado = "";
     atualizarInterfaceTempo();
 });
-
-calcularDuracaoEstimada();
-actualizarInterfaceTempoInicial();
-
-function actualizarInterfaceTempoInicial() {
-    atualizarInterfaceTempo();
-}
+vozAnterior = vozAtual();
+atualizarInterfaceTempo();
 </script>
-
-
 </body>
-
 </html>
