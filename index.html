@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -108,9 +108,7 @@ textarea::selection{background:rgba(96,165,250,.4);color:#fff}
 <button type="button" class="nav" onclick="proximaFrase()" aria-label="Próxima frase">⏩</button>
 <div class="voice-controls">
 
-<select id="voz" onchange="atualizarConfiguracoesVoz()" aria-label="Escolher voz em português">
-  <option value="piper:pt_BR-jeff-medium" selected>Jeff — Português do Brasil (padrão)</option>
-</select>
+<select id="voz" onchange="atualizarConfiguracoesVoz()" aria-label="Escolher voz neural Microsoft em português"><option value="">A procurar vozes Microsoft…</option></select>
 
 <select id="velocidade" onchange="atualizarConfiguracoesVoz()" aria-label="Velocidade da leitura"><option value="1" selected>1x</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="2.5">2.5x</option><option value="3">3x</option></select>
 </div>
@@ -132,18 +130,12 @@ let versaoTexto = 0;
 let versaoRenderizada = -1;
 let intervaloRelogio = null;
 let leituraConcluida = false;
-let audioPiper = null;
-let pedidoPiper = null;
-let objetoUrlPiper = null;
-let estadoPiper = "parado";
-let origemAudioPiper = null;
 let palavraDestacada = null;
 let fraseDestacada = null;
-let vozAnterior = "piper:pt_BR-jeff-medium";
-
-function ehVozPiper(voz) {
-    return typeof voz === "string" && voz.startsWith("piper:");
-}
+let vozAnterior = "";
+let mapaVozesMicrosoft = new Map();
+let temporizadorInicioVoz = null;
+let temporizadorReinicioSalto = null;
 
 const campoTexto = document.getElementById("inputText");
 const painelLeitura = document.getElementById("reader");
@@ -234,47 +226,20 @@ function reiniciarRelogio(concluida = false) {
 function definirModoLeitura(ativar) {
     document.querySelector(".container").classList.toggle("reading-mode", ativar);
 }
-function libertarAudioPiper() {
-    if (audioPiper) {
-        audioPiper.onplay = null;
-        audioPiper.ontimeupdate = null;
-        audioPiper.onended = null;
-        audioPiper.onerror = null;
-        audioPiper.pause();
-        try { audioPiper.currentTime = 0; } catch (e) {}
-        audioPiper = null;
-    }
-    if (objetoUrlPiper) {
-        URL.revokeObjectURL(objetoUrlPiper);
-        objetoUrlPiper = null;
-    }
-    origemAudioPiper = null;
-}
-function cancelarPedidoPiper() {
-    if (pedidoPiper) {
-        pedidoPiper.abort();
-        pedidoPiper = null;
-    }
+function limparTemporizadoresVoz() {
+    if (temporizadorInicioVoz !== null) clearTimeout(temporizadorInicioVoz);
+    temporizadorInicioVoz = null;
+    if (temporizadorReinicioSalto !== null) clearTimeout(temporizadorReinicioSalto);
+    temporizadorReinicioSalto = null;
 }
 function pararMotor(opcoes = {}) {
     const manterRelogio = !!opcoes.manterRelogio;
+    limparTemporizadoresVoz();
     reproduzindo = false;
     idReproducao++;
-    cancelarPedidoPiper();
-    libertarAudioPiper();
     if ("speechSynthesis" in window) speechSynthesis.cancel();
-    estadoPiper = "parado";
     if (!manterRelogio) pausarRelogio();
     definirStatus("");
-}
-function podeRetomarPiper() {
-    return estadoPiper === "pausado"
-        && audioPiper
-        && audioPiper.src
-        && Number.isFinite(audioPiper.duration)
-        && audioPiper.currentTime < audioPiper.duration - 0.05
-        && origemAudioPiper
-        && origemAudioPiper.indice === indiceAtual;
 }
 function aplicarDestaque() {
     const fraseEl = document.getElementById("frase-" + indiceAtual);
@@ -366,24 +331,42 @@ function prepararTexto() {
         renderizarLeitura();
         return;
     }
+    // Agrupa várias frases numa só fala. Criar uma utterance por ponto final
+    // faz o motor online do Edge reiniciar a voz a cada frase, causando pausas longas.
     const partes = texto.match(/[^.!?…]+(?:[.!?…]+["'”’)\]]*|$)/g) || [];
     const tamanhoMaximo = 500;
-    partes.forEach(parte => {
-        parte = parte.trim();
+    let bloco = "";
+    const adicionarBloco = () => {
+        const pronto = bloco.trim();
+        if (pronto) frases.push(pronto);
+        bloco = "";
+    };
+    partes.forEach(parteOriginal => {
+        let parte = parteOriginal.trim();
         if (!parte) return;
-        if (parte.length <= tamanhoMaximo) {
-            frases.push(parte);
-            return;
+        while (parte.length > 0) {
+            const espaco = bloco ? 1 : 0;
+            const capacidade = tamanhoMaximo - bloco.length - espaco;
+            if (parte.length <= capacidade) {
+                bloco += (bloco ? " " : "") + parte;
+                parte = "";
+            } else if (bloco && capacidade <= 0) {
+                adicionarBloco();
+            } else if (bloco && capacidade > 0) {
+                let corte = parte.lastIndexOf(" ", capacidade);
+                if (corte < Math.floor(capacidade * 0.5)) corte = capacidade;
+                bloco += (bloco ? " " : "") + parte.slice(0, corte).trim();
+                adicionarBloco();
+                parte = parte.slice(corte).trim();
+            } else {
+                let corte = parte.lastIndexOf(" ", tamanhoMaximo);
+                if (corte < Math.floor(tamanhoMaximo * 0.5)) corte = tamanhoMaximo;
+                frases.push(parte.slice(0, corte).trim());
+                parte = parte.slice(corte).trim();
+            }
         }
-        let restante = parte;
-        while (restante.length > tamanhoMaximo) {
-            let corte = restante.lastIndexOf(" ", tamanhoMaximo);
-            if (corte < tamanhoMaximo * 0.5) corte = tamanhoMaximo;
-            frases.push(restante.slice(0, corte).trim());
-            restante = restante.slice(corte).trim();
-        }
-        if (restante) frases.push(restante);
     });
+    adicionarBloco();
     palavrasPorFrase = frases.map(tokenizarPalavras);
     renderizarLeitura();
 }
@@ -422,13 +405,20 @@ function palavraGlobalPorIndice(indicePalavra) {
 }
 function saltarPara(indice, inicio, opcoes = {}) {
     if (!garantirTextoPreparado()) return;
-    const estavaTocando = reproduzindo || estadoPiper === "gerando";
-    origemAudioPiper = null;
+    const estavaTocando = reproduzindo;
     pararMotor();
     definirCursor(indice, inicio);
     definirModoLeitura(true);
     renderizarLeitura();
-    if (estavaTocando || opcoes.reproduzir) playAudio();
+    // O Edge/Chromium pode emitir o evento de cancelamento da fala anterior
+    // de forma assíncrona. Uma espera maior evita sobrepor a nova fala à anterior.
+    if (estavaTocando || opcoes.reproduzir) {
+        const idSalto = idReproducao;
+        temporizadorReinicioSalto = setTimeout(() => {
+            temporizadorReinicioSalto = null;
+            if (idSalto === idReproducao && !reproduzindo) playAudio();
+        }, 1000);
+    }
 }
 function totalPalavras() {
     return palavrasPorFrase.reduce((soma, lista) => soma + lista.length, 0);
@@ -443,12 +433,25 @@ function saltarPorFracao(fracao) {
     saltarPara(alvo.indiceFrase, alvo.palavra.inicio);
 }
 
+function armarTemporizadorInicio(minha) {
+    if (temporizadorInicioVoz !== null) clearTimeout(temporizadorInicioVoz);
+    temporizadorInicioVoz = setTimeout(() => {
+        if (minha !== idReproducao || !reproduzindo) return;
+        temporizadorInicioVoz = null;
+        reproduzindo = false;
+        idReproducao++;
+        speechSynthesis.cancel();
+        pausarRelogio();
+        definirStatus("A voz demorou demasiado a iniciar. Tenta novamente.");
+    }, 20000);
+}
+
 function playAudio() {
     if (!garantirTextoPreparado()) {
         stopAudio();
         return;
     }
-    if (leituraConcluida || (indiceAtual >= frases.length - 1 && posicaoNoBloco >= (frases[indiceAtual] || "").length && estadoPiper !== "pausado")) {
+    if (leituraConcluida || (indiceAtual >= frases.length - 1 && posicaoNoBloco >= (frases[indiceAtual] || "").length)) {
         indiceAtual = 0;
         posicaoNoBloco = 0;
         inicioPalavraAtual = -1;
@@ -457,165 +460,29 @@ function playAudio() {
         renderizarLeitura();
     }
     definirModoLeitura(true);
-
-	if (ehVozPiper(vozAtual())) {
-        if (reproduzindo && estadoPiper === "tocando") return;
-        if (podeRetomarPiper()) {
-            reproduzindo = true;
-            estadoPiper = "tocando";
-            iniciarRelogio();
-            definirStatus("A reproduzir");
-            audioPiper.playbackRate = velocidadeAtual();
-            audioPiper.play().catch(erro => {
-                console.error("Erro ao retomar o Piper:", erro);
-                reproduzindo = false;
-                estadoPiper = "pausado";
-                pausarRelogio();
-                definirStatus("Pausado");
-            });
-            return;
-        }
-        reproduzindo = true;
-        estadoPiper = "gerando";
-        iniciarRelogio();
-        const minha = ++idReproducao;
-        cancelarPedidoPiper();
-        libertarAudioPiper();
-        lerBlocoPiper(minha);
+    if (reproduzindo) return;
+    if (!("speechSynthesis" in window)) {
+        definirStatus("Vozes indisponíveis");
+        alert("Este navegador não disponibiliza a síntese de voz.");
         return;
     }
-
-    if (reproduzindo) return;
+    const voz = mapaVozesMicrosoft.get(vozAtual());
+    if (!voz) {
+        definirStatus("Sem voz Microsoft PT");
+        alert("Não foi encontrada uma voz Microsoft neural em português neste navegador. Abra o Watson Reader Pro no Microsoft Edge e confirme que as vozes online estão disponíveis.");
+        return;
+    }
+    limparTemporizadoresVoz();
     const minha = ++idReproducao;
-    speechSynthesis.cancel();
-    cancelarPedidoPiper();
-    libertarAudioPiper();
+    // Não cancelar novamente aqui: saltarPara(), pauseAudio() e stopAudio()
+    // já cancelam a fala anterior. Um segundo cancel() imediatamente antes
+    // de speak() pode provocar synthesis-failed no Edge/Chromium.
     reproduzindo = true;
     iniciarRelogio();
-    definirStatus("A reproduzir");
+    definirStatus("A preparar voz Microsoft…");
+    // Se o motor não emitir onstart, não deixar a interface presa indefinidamente.
+    armarTemporizadorInicio(minha);
     lerBloco(minha);
-}
-async function lerBlocoPiper(minha) {
-    if (minha !== idReproducao || !reproduzindo || indiceAtual >= frases.length) return;
-    const frase = frases[indiceAtual];
-    const inicioTrecho = Math.max(0, Math.min(posicaoNoBloco, frase.length));
-    const restante = frase.slice(inicioTrecho);
-    if (!restante.trim()) {
-        avancarBlocoPiper(minha);
-        return;
-    }
-    try {
-        const controller = new AbortController();
-        pedidoPiper = controller;
-        estadoPiper = "gerando";
-        definirStatus("A gerar áudio...");
-        const resposta = await fetch("http://127.0.0.1:8765/synthesize", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-			text: restante,
-			voice: vozAtual().slice("piper:".length)
-		}),
-            signal: controller.signal
-        });
-        if (!resposta.ok) throw new Error("O servidor Piper respondeu com o código " + resposta.status);
-        const blob = await resposta.blob();
-        if (minha !== idReproducao || !reproduzindo) return;
-        if (pedidoPiper === controller) pedidoPiper = null;
-        libertarAudioPiper();
-        objetoUrlPiper = URL.createObjectURL(blob);
-        const esteAudio = new Audio(objetoUrlPiper);
-        audioPiper = esteAudio;
-        origemAudioPiper = { indice: indiceAtual, inicio: inicioTrecho };
-        esteAudio.playbackRate = velocidadeAtual();
-
-        const palavrasSync = [];
-        const rePalavra = /\S+/g;
-        let matchSync;
-        while ((matchSync = rePalavra.exec(restante)) !== null) {
-            const palavra = matchSync[0];
-            const vogais = palavra.toLocaleLowerCase().match(/[aeiouáéíóúâêôãõü]+/g) || [];
-            const seguinte = restante.slice(matchSync.index + palavra.length, matchSync.index + palavra.length + 2);
-            const peso = Math.max(1, vogais.length) + (/[,:;]/.test(seguinte) ? 0.35 : 0) + (/[.!?…]/.test(seguinte) ? 0.8 : 0);
-            palavrasSync.push({ inicio: matchSync.index, fim: matchSync.index + palavra.length, peso });
-        }
-        const pesoTotal = palavrasSync.reduce((s, p) => s + p.peso, 0) || 1;
-
-        esteAudio.ontimeupdate = () => {
-            if (minha !== idReproducao || !reproduzindo || audioPiper !== esteAudio || !Number.isFinite(esteAudio.duration) || esteAudio.duration <= 0) return;
-            const fracao = Math.min(esteAudio.currentTime / esteAudio.duration, 0.999);
-            const alvo = fracao * pesoTotal;
-            let acumulado = 0;
-            let atual = palavrasSync[palavrasSync.length - 1];
-            for (const p of palavrasSync) {
-                if (alvo < acumulado + p.peso) { atual = p; break; }
-                acumulado += p.peso;
-            }
-            if (atual) definirCursor(indiceAtual, inicioTrecho + atual.inicio, inicioTrecho + atual.fim);
-            else definirCursor(indiceAtual, Math.min(frase.length, inicioTrecho + restante.length));
-            aplicarDestaque();
-            atualizarInterfaceTempo();
-        };
-        esteAudio.onplay = () => {
-            if (minha === idReproducao) {
-                estadoPiper = "tocando";
-                definirStatus("A reproduzir");
-                aplicarDestaque();
-            }
-        };
-        esteAudio.onended = () => {
-            if (minha !== idReproducao || !reproduzindo) return;
-            audioPiper = null;
-            origemAudioPiper = null;
-            if (objetoUrlPiper) {
-                URL.revokeObjectURL(objetoUrlPiper);
-                objetoUrlPiper = null;
-            }
-            avancarBlocoPiper(minha);
-        };
-        esteAudio.onerror = () => {
-            if (minha === idReproducao) {
-                reproduzindo = false;
-                estadoPiper = "parado";
-                pausarRelogio();
-                definirStatus("Erro no áudio");
-                console.error("Erro ao reproduzir o áudio do Piper.");
-            }
-        };
-        await esteAudio.play();
-    } catch (erro) {
-        if (erro.name === "AbortError") return;
-        if (minha === idReproducao) {
-            reproduzindo = false;
-            estadoPiper = "parado";
-            pausarRelogio();
-            definirStatus("Piper indisponível");
-            console.error("Erro no Piper:", erro);
-            alert("Não foi possível reproduzir a voz Piper. Confirme que o servidor local continua aberto.");
-        }
-    }
-}
-function avancarBlocoPiper(minha) {
-    if (minha !== idReproducao || !reproduzindo) return;
-    if (indiceAtual < frases.length - 1) {
-        indiceAtual++;
-        posicaoNoBloco = 0;
-        inicioPalavraAtual = -1;
-        fimPalavraAtual = -1;
-        const primeira = (palavrasPorFrase[indiceAtual] || [])[0];
-        if (primeira) definirCursor(indiceAtual, primeira.inicio, primeira.fim);
-        renderizarLeitura();
-        lerBlocoPiper(minha);
-    } else {
-        reproduzindo = false;
-        estadoPiper = "parado";
-        posicaoNoBloco = frases[indiceAtual]?.length || 0;
-        leituraConcluida = true;
-        pausarRelogio();
-        atualizarInterfaceTempo();
-        aplicarDestaque();
-        definirStatus("Concluído");
-    }
 }
 function lerBloco(minha) {
     if (minha !== idReproducao || !reproduzindo || indiceAtual >= frases.length) return;
@@ -637,19 +504,14 @@ function lerBloco(minha) {
         }
         return;
     }
-    if (ehVozPiper(vozAtual())) {
-        lerBlocoPiper(minha);
-        return;
-    }
     const utterance = new SpeechSynthesisUtterance(restante);
-    const vozes = speechSynthesis.getVoices();
-    const chave = vozAtual();
-    const voz = vozes.find(v => v.localService === true && `${v.name}|${v.lang}|${v.voiceURI}` === chave && v.lang && v.lang.toLowerCase().startsWith("pt"));
+    armarTemporizadorInicio(minha);
+    const voz = mapaVozesMicrosoft.get(vozAtual());
     if (!voz) {
         reproduzindo = false;
         pausarRelogio();
-        definirStatus("Sem voz PT");
-        alert("Não foi encontrada uma voz local em português. Verifique as vozes disponíveis no navegador.");
+        definirStatus("Sem voz Microsoft PT");
+        alert("Não foi encontrada uma voz Microsoft em português. Abra no Microsoft Edge e confirme as vozes disponíveis.");
         return;
     }
     utterance.voice = voz;
@@ -657,6 +519,8 @@ function lerBloco(minha) {
     utterance.rate = velocidadeAtual();
     utterance.onstart = () => {
         if (minha === idReproducao) {
+            if (temporizadorInicioVoz !== null) clearTimeout(temporizadorInicioVoz);
+            temporizadorInicioVoz = null;
             definirStatus("A reproduzir");
             aplicarDestaque();
         }
@@ -678,6 +542,8 @@ function lerBloco(minha) {
     };
     utterance.onend = () => {
         if (minha !== idReproducao || !reproduzindo) return;
+        if (temporizadorInicioVoz !== null) clearTimeout(temporizadorInicioVoz);
+        temporizadorInicioVoz = null;
         posicaoNoBloco = 0;
         inicioPalavraAtual = -1;
         fimPalavraAtual = -1;
@@ -694,38 +560,22 @@ function lerBloco(minha) {
         }
     };
     utterance.onerror = evento => {
-        if (minha === idReproducao && evento.error !== "canceled" && evento.error !== "interrupted") {
-            reproduzindo = false;
-            pausarRelogio();
-            definirStatus("Erro na leitura");
-            console.error("Erro na leitura:", evento.error);
-        }
+        if (minha !== idReproducao) return;
+        if (temporizadorInicioVoz !== null) clearTimeout(temporizadorInicioVoz);
+        temporizadorInicioVoz = null;
+        if (evento.error === "canceled" || evento.error === "interrupted") return;
+        reproduzindo = false;
+        idReproducao++;
+        pausarRelogio();
+        const codigoErro = evento && evento.error ? String(evento.error) : "desconhecido";
+        definirStatus("Erro na leitura (" + codigoErro + ") — tenta novamente");
+        console.error("Erro na leitura:", codigoErro, evento);
     };
     speechSynthesis.speak(utterance);
 }
 function pauseAudio() {
-    if (!reproduzindo && estadoPiper !== "gerando" && estadoPiper !== "tocando") return;
-    if (ehVozPiper(vozAtual())) {
-        if (audioPiper && !audioPiper.paused && reproduzindo) {
-            audioPiper.pause();
-            reproduzindo = false;
-            estadoPiper = "pausado";
-            pausarRelogio();
-            definirStatus("Pausado");
-            return;
-        }
-        if (reproduzindo && estadoPiper === "gerando") {
-            reproduzindo = false;
-            idReproducao++;
-            cancelarPedidoPiper();
-            estadoPiper = "pausado";
-            origemAudioPiper = null;
-            pausarRelogio();
-            definirStatus("Pausado");
-        }
-        return;
-    }
     if (!reproduzindo) return;
+    limparTemporizadoresVoz();
     reproduzindo = false;
     idReproducao++;
     speechSynthesis.cancel();
@@ -747,29 +597,23 @@ function stopAudio() {
 function atualizarConfiguracoesVoz() {
     atualizarInterfaceTempo();
     const voz = vozAtual();
-    const velocidade = velocidadeAtual();
-    if (audioPiper && ehVozPiper(voz)) audioPiper.playbackRate = velocidade;
     const mudouVoz = voz !== vozAnterior;
     vozAnterior = voz;
     if (!reproduzindo) return;
-    if (!mudouVoz && ehVozPiper(voz) && audioPiper) return;
+    limparTemporizadoresVoz();
     const minha = ++idReproducao;
-    cancelarPedidoPiper();
-    libertarAudioPiper();
     speechSynthesis.cancel();
-    if (ehVozPiper(voz)) {
-        estadoPiper = "gerando";
-        lerBlocoPiper(minha);
-    } else {
-        setTimeout(() => {
-            if (minha === idReproducao && reproduzindo) lerBloco(minha);
-        }, 80);
-    }
+    reproduzindo = true;
+    definirStatus("A preparar voz Microsoft…");
+    armarTemporizadorInicio(minha);
+    setTimeout(() => {
+        if (minha === idReproducao && reproduzindo) lerBloco(minha);
+    }, 180);
 }
 function proximaFrase() {
     if (!garantirTextoPreparado()) return;
     if (indiceAtual < frases.length - 1) {
-        const estavaTocando = reproduzindo || estadoPiper === "gerando";
+        const estavaTocando = reproduzindo;
         pararMotor({ manterRelogio: estavaTocando });
         indiceAtual++;
         posicaoNoBloco = 0;
@@ -786,7 +630,7 @@ function proximaFrase() {
 function fraseAnterior() {
     if (!garantirTextoPreparado()) return;
     if (indiceAtual > 0) {
-        const estavaTocando = reproduzindo || estadoPiper === "gerando";
+        const estavaTocando = reproduzindo;
         pararMotor({ manterRelogio: estavaTocando });
         indiceAtual--;
         posicaoNoBloco = 0;
@@ -801,60 +645,46 @@ function fraseAnterior() {
     }
 }
 
-async function atualizarListaVozes() {
+function atualizarListaVozes() {
     const select = document.getElementById("voz");
-    const anterior = select.value || "piper:pt_BR-jeff-medium";
-
+    const anterior = select.value || vozAnterior;
+    const todas = ("speechSynthesis" in window) ? speechSynthesis.getVoices() : [];
+    const ptMicrosoft = todas.filter(v => {
+        const lang = (v.lang || "").toLowerCase();
+        const nome = (v.name || "").toLowerCase();
+        const uri = (v.voiceURI || "").toLowerCase();
+        return (lang.startsWith("pt-br") || lang.startsWith("pt-pt"))
+            && (nome.includes("microsoft") || uri.includes("microsoft"))
+            && (nome.includes("natural") || nome.includes("neural") || uri.includes("natural") || uri.includes("neural") || nome.includes("online"));
+    });
+    mapaVozesMicrosoft = new Map();
     select.replaceChildren();
-
-    const adicionar = (valor, texto) => {
-        // Evita adicionar a mesma voz mais de uma vez.
-        if (Array.from(select.options).some(opcao => opcao.value === valor)) {
-            return;
-        }
-
-        const opcao = document.createElement("option");
-        opcao.value = valor;
-        opcao.textContent = texto;
-        select.appendChild(opcao);
-    };
-
-    try {
-        const resposta = await fetch("http://127.0.0.1:8765/voices");
-
-        if (!resposta.ok) {
-            throw new Error("Erro HTTP " + resposta.status);
-        }
-
-        const dados = await resposta.json();
-
-        dados.voices.forEach(voz => {
-            const padrao = voz.id === dados.default_voice;
-
-            adicionar(
-                "piper:" + voz.id,
-                voz.name + (padrao ? " (padrão)" : "")
-            );
-        });
-    } catch (erro) {
-        console.error("Não foi possível carregar as vozes Piper:", erro);
-
-        adicionar(
-            "piper:pt_BR-jeff-medium",
-            "Jeff — Português do Brasil (padrão)"
-        );
+    const ordenar = ptMicrosoft.sort((a, b) => {
+        const la = (a.lang || "").toLowerCase();
+        const lb = (b.lang || "").toLowerCase();
+        return la.localeCompare(lb) || a.name.localeCompare(b.name);
+    });
+    ordenar.forEach((voz, i) => {
+        const chave = `${voz.name}|${voz.lang}|${voz.voiceURI}`;
+        mapaVozesMicrosoft.set(chave, voz);
+        const opt = document.createElement("option");
+        opt.value = chave;
+        const idioma = (voz.lang || "").toLowerCase().startsWith("pt-br") ? "Português do Brasil" : "Português de Portugal";
+        opt.textContent = `${idioma} — ${voz.name}`;
+        select.appendChild(opt);
+    });
+    if (!ordenar.length) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "Nenhuma voz Microsoft neural PT encontrada";
+        select.appendChild(opt);
+        definirStatus("Sem vozes Microsoft PT detectadas");
+        return;
     }
-
-    const existe = Array.from(select.options)
-        .some(opcao => opcao.value === anterior);
-
-    select.value = existe
-        ? anterior
-        : "piper:pt_BR-jeff-medium";
-
+    select.value = mapaVozesMicrosoft.has(anterior) ? anterior : select.options[0].value;
     vozAnterior = select.value;
+    if (!estadoLeitura.textContent || estadoLeitura.textContent.includes("Sem vozes")) definirStatus("");
 }
-
 
 painelLeitura.addEventListener("click", evento => {
     const palavraEl = evento.target.closest(".word");
@@ -890,7 +720,7 @@ document.addEventListener("keydown", evento => {
     if (aEscrever) return;
     if (evento.code === "Space" || evento.key === "k") {
         evento.preventDefault();
-        if (reproduzindo || estadoPiper === "gerando" || estadoPiper === "tocando") pauseAudio();
+        if (reproduzindo) pauseAudio();
         else playAudio();
     } else if (evento.key === "ArrowLeft") {
         evento.preventDefault();
@@ -903,9 +733,12 @@ document.addEventListener("keydown", evento => {
 if ("speechSynthesis" in window) {
     atualizarListaVozes();
     speechSynthesis.onvoiceschanged = atualizarListaVozes;
+    // Alguns navegadores carregam a lista de vozes de forma assíncrona.
+    setTimeout(atualizarListaVozes, 300);
+    setTimeout(atualizarListaVozes, 1200);
 }
 campoTexto.addEventListener("input", () => {
-    if (reproduzindo || estadoPiper === "gerando" || estadoPiper === "tocando" || estadoPiper === "pausado") stopAudio();
+    if (reproduzindo) stopAudio();
     textoPreparado = "";
     atualizarInterfaceTempo();
 });
