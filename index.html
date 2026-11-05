@@ -45,7 +45,7 @@ textarea::selection{background:rgba(96,165,250,.4);color:#fff}
 .progress-bar{width:0%;height:100%;background:#22c55e;transition:width .1s linear;pointer-events:none}
 .text-stage{position:relative;margin-top:20px;border-radius:14px}
 .text-stage textarea{margin-top:0;margin-bottom:0;height:300px}
-.text-stage .reader{display:none;box-sizing:border-box;height:300px;margin:0;overflow:auto;background:rgba(8,18,37,.82);border:1px solid rgba(96,165,250,.16);border-radius:14px;padding:22px 24px;line-height:1.9;font-size:17px;color:#e5edf8;cursor:text}
+.text-stage .reader{display:none;box-sizing:border-box;height:300px;margin:0;overflow:auto;background:rgba(8,18,37,.82);border:1px solid rgba(96,165,250,.16);border-radius:14px;padding:22px 24px;line-height:1.9;font-size:17px;color:#e5edf8;cursor:pointer}
 .container.reading-mode .text-stage textarea{display:none}
 .container.reading-mode .text-stage .reader{display:block}
 .text-stage textarea,.text-stage .reader{scrollbar-width:thin;scrollbar-color:#e60000 #111827}
@@ -54,10 +54,15 @@ textarea::selection{background:rgba(96,165,250,.4);color:#fff}
 .text-stage textarea::-webkit-scrollbar-thumb,.text-stage .reader::-webkit-scrollbar-thumb{background-color:#e60000;border:2px solid #111827;border-radius:10px}
 .text-stage textarea::-webkit-scrollbar-thumb:hover,.text-stage .reader::-webkit-scrollbar-thumb:hover{background-color:#ff454d}
 .sentence{border-radius:6px}
-.sentence.current-sentence{background:rgba(250,204,21,.07)}
+.sentence.current-sentence{background:#facc15;color:#111827;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+#seguirLeituraBtn[aria-pressed="false"]{border-color:rgba(250,204,21,.45);color:#facc15}
+.reader{overscroll-behavior:contain}
 .word{border-radius:4px;cursor:pointer}
 .word:hover{background:rgba(250,204,21,.22)}
-.word.current{background:#facc15;color:#111}
+.word.current{background:transparent;color:inherit}
+.reading-chunk{border-radius:5px;transition:background-color .12s,color .12s}
+.reading-chunk.current-chunk{background:transparent;color:inherit}
+
 @media(max-width:900px) and (min-width:651px){
   .toolbar{flex-wrap:wrap}
   .voice-controls{margin-left:auto}
@@ -79,6 +84,13 @@ textarea::selection{background:rgba(96,165,250,.4);color:#fff}
   .text-stage textarea,.text-stage .reader{height:260px;padding:15px;font-size:15px}
   .time-progress{font-size:12px;gap:6px}
 }
+.piper-sync{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 4px 0;color:#cbd5e1;font-size:12px}
+.piper-sync[hidden]{display:none}
+.piper-sync input[type="range"]{width:160px;accent-color:#ef4444}
+.piper-sync output{min-width:50px;color:#fff;font-variant-numeric:tabular-nums}
+.piper-sync small{color:#94a3b8}
+.privacy-hint{margin:10px 0 0;padding:9px 12px;border:1px solid rgba(96,165,250,.22);border-radius:10px;background:rgba(10,23,41,.65);font-size:12px;color:#cbd5e1;line-height:1.5}
+.privacy-hint strong{color:#a5d8ff}
 </style>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23c62828'/%3E%3Cpath d='M14 34V29a18 18 0 0 1 36 0v5' fill='none' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3Crect x='10' y='31' width='12' height='19' rx='5' fill='white'/%3E%3Crect x='42' y='31' width='12' height='19' rx='5' fill='white'/%3E%3Cpath d='M48 49q0 7-9 7h-5' fill='none' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='31' cy='56' r='3' fill='white'/%3E%3C/svg%3E">
 </head>
@@ -97,22 +109,26 @@ textarea::selection{background:rgba(96,165,250,.4);color:#fff}
   <div id="progressBar" class="progress-bar"></div>
 </div>
 <div class="text-stage" id="textStage">
-<textarea id="inputText" placeholder="Cole aqui sua transcrição..." aria-label="Texto para narrar"></textarea>
-<div id="reader" class="reader" aria-label="Texto em leitura" aria-live="off">Aguardando texto...</div>
+<textarea id="inputText" placeholder="Cole aqui a transcrição com Ctrl+V... (texto não editável)" aria-label="Texto para narrar (colagem e substituição completas)" readonly spellcheck="false"></textarea>
+<div id="reader" class="reader" tabindex="0" aria-label="Transcrição em leitura, apenas de consulta" aria-live="off">Aguardando texto...</div>
 </div>
+<div class="privacy-hint" role="status" aria-live="polite"><strong>🛡 Proteção local ativa:</strong> <span id="privacyResult">Ao colar, o Watson oculta todos os números e moradas detetadas. Os nomes ficam visíveis. Revê o texto antes de reproduzir.</span></div>
 <div class="toolbar">
 <button type="button" class="play" onclick="playAudio()">▶ Play</button>
 <button type="button" class="pause" onclick="pauseAudio()">⏸ Pause</button>
 <button type="button" class="stop" onclick="stopAudio()">⏹ Stop</button>
+<button type="button" class="nav" onclick="limparTranscricao()" title="Limpar toda a transcrição">🗑 Limpar</button>
 <button type="button" class="nav" onclick="fraseAnterior()" aria-label="Frase anterior">⏪</button>
 <button type="button" class="nav" onclick="proximaFrase()" aria-label="Próxima frase">⏩</button>
+<button type="button" class="nav" id="seguirLeituraBtn" onclick="alternarSeguimento()" aria-pressed="true" title="Ativar ou desativar o seguimento automático">📍 A seguir</button>
 <div class="voice-controls">
 
-<select id="voz" onchange="atualizarConfiguracoesVoz()" aria-label="Escolher voz neural Microsoft em português"><option value="">A procurar vozes Microsoft…</option></select>
+<select id="voz" onchange="atualizarConfiguracoesVoz()" aria-label="Escolher voz Piper offline"><option value="">A carregar vozes Piper…</option></select>
 
 <select id="velocidade" onchange="atualizarConfiguracoesVoz()" aria-label="Velocidade da leitura"><option value="1" selected>1x</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="2.5">2.5x</option><option value="3">3x</option></select>
 </div>
 </div>
+
 </div>
 <script>
 "use strict";
@@ -132,10 +148,31 @@ let intervaloRelogio = null;
 let leituraConcluida = false;
 let palavraDestacada = null;
 let fraseDestacada = null;
+let trechoDestacado = null;
+let indiceTrechoAtual = -1;
 let vozAnterior = "";
-let mapaVozesMicrosoft = new Map();
-let temporizadorInicioVoz = null;
 let temporizadorReinicioSalto = null;
+
+// Piper corre apenas através do servidor local fornecido neste pacote.
+const PREFIXO_VOZ_PIPER = "__piper_local__:";
+let vozesPiper = [];
+const ehVozPiper = valor => typeof valor === "string" && valor.startsWith(PREFIXO_VOZ_PIPER);
+const API_PIPER = "/api/piper";
+let audioPiper = null;
+let urlAudioPiper = null;
+let pedidoPiper = null;
+let temporizadorDestaquePiper = null;
+let inicioTrechoPiper = 0;
+let tokensTrechoPiper = [];
+let duracaoAudioPiper = 0;
+let segmentosPiper = [];
+let mapaTemposPiper = [];
+let duracoesTrechosPiper = [];
+const audiosPreparadosPiper = new Map();
+const QUANTIDADE_PREPARAR_PIPER = 1;
+let adiantamentoPiper = 0.15;
+let seguirLeituraAutomaticamente = true;
+
 
 const campoTexto = document.getElementById("inputText");
 const painelLeitura = document.getElementById("reader");
@@ -143,6 +180,37 @@ const barraProgresso = document.getElementById("progressBar");
 const faixaProgresso = document.getElementById("progressTrack");
 const estadoLeitura = document.getElementById("statusLeitura");
 
+function atualizarBotaoSeguimento() {
+    const botao = document.getElementById("seguirLeituraBtn");
+    if (!botao) return;
+    botao.setAttribute("aria-pressed", String(seguirLeituraAutomaticamente));
+    botao.textContent = seguirLeituraAutomaticamente ? "📍 A seguir" : "📌 Scroll livre";
+    botao.title = seguirLeituraAutomaticamente
+        ? "O Watson acompanha a leitura. Desloca o texto para desativar."
+        : "Clica aqui para voltar a acompanhar a leitura.";
+}
+function desativarSeguimento() {
+    if (!seguirLeituraAutomaticamente) return;
+    seguirLeituraAutomaticamente = false;
+    atualizarBotaoSeguimento();
+}
+function alternarSeguimento() {
+    seguirLeituraAutomaticamente = !seguirLeituraAutomaticamente;
+    atualizarBotaoSeguimento();
+    if (seguirLeituraAutomaticamente) aplicarDestaque();
+}
+// Qualquer tentativa de navegar manualmente tem prioridade sobre o destaque.
+// O seguimento só regressa com o botão, nunca por um temporizador.
+painelLeitura.addEventListener("wheel", desativarSeguimento, {passive:true});
+painelLeitura.addEventListener("touchstart", desativarSeguimento, {passive:true});
+painelLeitura.addEventListener("pointerdown", evento => {
+    const r = painelLeitura.getBoundingClientRect();
+    if (evento.clientX >= r.right - 24 || !evento.target.closest(".sentence")) desativarSeguimento();
+}, {passive:true});
+painelLeitura.addEventListener("keydown", evento => {
+    if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(evento.key)) desativarSeguimento();
+});
+function atualizarVisibilidadeSincronia() {}
 function vozAtual() {
     return document.getElementById("voz").value;
 }
@@ -227,59 +295,385 @@ function definirModoLeitura(ativar) {
     document.querySelector(".container").classList.toggle("reading-mode", ativar);
 }
 function limparTemporizadoresVoz() {
-    if (temporizadorInicioVoz !== null) clearTimeout(temporizadorInicioVoz);
-    temporizadorInicioVoz = null;
     if (temporizadorReinicioSalto !== null) clearTimeout(temporizadorReinicioSalto);
     temporizadorReinicioSalto = null;
 }
+function limparAudioPiper() {
+    if (temporizadorDestaquePiper !== null) clearInterval(temporizadorDestaquePiper);
+    temporizadorDestaquePiper = null;
+    if (pedidoPiper) pedidoPiper.abort();
+    pedidoPiper = null;
+    if (audioPiper) {
+        audioPiper.pause();
+        audioPiper.onended = null;
+        audioPiper.onerror = null;
+        audioPiper.onloadedmetadata = null;
+        audioPiper.removeAttribute("src");
+        audioPiper.load();
+        audioPiper = null;
+    }
+    if (urlAudioPiper) URL.revokeObjectURL(urlAudioPiper);
+    urlAudioPiper = null;
+    tokensTrechoPiper = [];
+    duracaoAudioPiper = 0;
+    segmentosPiper = [];
+    mapaTemposPiper = [];
+    duracoesTrechosPiper = [];
+    indiceTrechoAtual = -1;
+}
+
+// Grupos curtos com limites temporais exatos (medidos no áudio produzido pelo Piper).
+// O posicionamento dentro de cada grupo considera a extensão das palavras e pontuação.
+// Mantém expressões e frases completas. Só subdivide frases excepcionalmente longas,
+// preferindo vírgulas ou outros limites naturais, nunca de 14 em 14 palavras.
+// A pronúncia é preparada apenas no pedido ao Piper; o texto visível não é alterado.
+const ABREVIATURAS_PIPER = [
+    [/\bSras\./gi,"Senhoras"], [/\bSrs\./gi,"Senhores"],
+    [/\bSra\./gi,"Senhora"], [/\bSr\./gi,"Senhor"],
+    [/\bDra\./gi,"Doutora"], [/\bDr\./gi,"Doutor"],
+    [/\bEnga\./gi,"Engenheira"], [/\bEng\./gi,"Engenheiro"],
+    [/\bExma\./gi,"Excelentíssima"], [/\bExmo\./gi,"Excelentíssimo"],
+    [/\bAv\./gi,"Avenida"], [/\bProfª\./gi,"Professora"],
+    [/\bProf\./gi,"Professor"], [/\bn\s*\.\s*º/gi,"número"]
+];
+function pronunciaPiper(texto) {
+    let resultado=texto;
+    for (const [patrao,troca] of ABREVIATURAS_PIPER) resultado=resultado.replace(patrao,troca);
+    // Preservamos ? e ! para a entoação nativa do modelo Piper.
+    // Não acrescentamos pausas artificiais nem partimos perguntas em palavras.
+    return resultado;
+}
+// A proteção só afeta o texto colocado no Watson; não é anonimização garantida.
+function protegerTranscricao(original) {
+    // Proteção local, conservadora quanto aos nomes próprios:
+    // nunca procura nem substitui nomes de pessoas.
+    // Oculta TODOS os algarismos, incluindo valores isolados e formatos mistos.
+    const candidatos=[];
+    const incluir=(inicio,fim,tipo,peso)=>{if(fim>inicio)candidatos.push({inicio,fim,tipo,peso});};
+    const detetar=(patrao,tipo,peso,validar)=>{
+        for(const m of original.matchAll(patrao)) {
+            if(!validar || validar(m[0],m)) incluir(m.index,m.index+m[0].length,tipo,peso);
+        }
+    };
+    // Moradas: o nome da rua pode conter nomes próprios, mas a morada completa é protegida.
+    detetar(/\b(?:Rua|R\.|Avenida|Av\.|Travessa|Tv\.|Estrada|Praceta|Alameda|Praça|Largo|Urbanização|Urb\.|Beco|Calçada|Caminho|Rotunda|Bairro)\s+(?:[^\n.!?;]|\.(?=\s*\d)){3,140}/giu,'MORADA',100);
+    detetar(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g,'EMAIL',95);
+    // IBAN português, com ou sem espaços, e também IBAN internacionais conhecidos.
+    detetar(/\bPT\s*5\s*0(?:[ \t.-]*\d){21}\b/gi,'IBAN',92);
+    detetar(/\b[A-Z]{2}\d{2}(?:[ \t.-]*[A-Z0-9]){11,30}\b/gi,'IBAN',90);
+    // Referências e números de conta/contrato, incluindo códigos alfanuméricos.
+    detetar(/\b(?:IBAN|NIB|NIF|NIPC|contribuinte|número\s+fiscal|conta|contrato|cliente|processo|referência|referencia|pedido|cartão|cartao)\s*(?:n[ºo.]*)?\s*[:#-]\s*[A-Z0-9/_-]*\d[A-Z0-9/_-]*(?:[ \t]+[A-Z0-9/_-]*\d[A-Z0-9/_-]*)*/gi,'IDENTIFICADOR',75);
+    detetar(/\b\d{4}[ \t]*-[ \t]*\d{3}\b/g,'CODIGO_POSTAL',70);
+    // Telefones com separadores habituais, incluindo prefixo internacional.
+    detetar(/(?<!\d)(?:\+351[ \t.-]?)?[29]\d{2}[ \t.-]?\d{3}[ \t.-]?\d{3}(?!\d)/g,'TELEFONE',65);
+    // Sequências de algarismos com separadores mistos: espaços, pontos, vírgulas,
+    // dois-pontos, barra, hífen e ponto e vírgula. Inclui números isolados.
+    // Não captura quebras de linha nem palavras entre números.
+    detetar(/\d+(?:(?:[ \t]*[.,;:\/-][ \t]*|[ \t]+)\d+)*/g,'NUMERO',10);
+    // Mais específico primeiro. Um número dentro de uma morada, email ou IBAN
+    // não deve gerar uma segunda etiqueta sobreposta.
+    candidatos.sort((a,b)=>b.peso-a.peso||(b.fim-b.inicio)-(a.fim-a.inicio));
+    const aceites=[];
+    for(const c of candidatos) {
+        if(!aceites.some(a=>c.inicio<a.fim&&a.inicio<c.fim)) aceites.push(c);
+    }
+    aceites.sort((a,b)=>a.inicio-b.inicio);
+    const contagens=new Map(), equivalencias=new Map();
+    let cursor=0,saida='';
+    for(const c of aceites) {
+        saida+=original.slice(cursor,c.inicio);
+        const valor=original.slice(c.inicio,c.fim);
+        const chave=c.tipo+'|'+valor.toLocaleLowerCase('pt-PT').replace(/\s+/g,' ').trim();
+        let etiqueta=equivalencias.get(chave);
+        if(!etiqueta) {
+            const n=(contagens.get(c.tipo)||0)+1;
+            contagens.set(c.tipo,n);
+            etiqueta='['+c.tipo.replace(/_/g,' ')+' '+n+']';
+            equivalencias.set(chave,etiqueta);
+        }
+        saida+=etiqueta;
+        cursor=c.fim;
+    }
+    saida+=original.slice(cursor);
+    return {texto:saida,substituicoes:aceites.length};
+}
+// Uma abreviatura expandida nunca é tratada como ponto final.
+function terminaFraseParaPiper(token) {
+    const expandido = pronunciaPiper(token.texto);
+    return /[.!?…]["'”’)]*$/.test(expandido);
+}
+function pausaNaturalParaPiper(token) {
+    return /[,;:]["'”’)]*$/.test(pronunciaPiper(token.texto));
+}
+function construirSegmentosPiper(frase, tokens) {
+    const grupos = [];
+    if (!tokens.length) return grupos;
+    const LIMITE = 560; // O servidor aceita até 600 caracteres por segmento.
+    let i = 0;
+    while (i < tokens.length) {
+        let fim = i;
+        while (fim < tokens.length && tokens[fim].fim - tokens[i].inicio <= LIMITE) {
+            fim++;
+            if (terminaFraseParaPiper(tokens[fim - 1])) break;
+        }
+        if (fim === i) fim = i + 1;
+        // Só em frases extensas: procurar pontuação respiratória perto do corte.
+        if (fim < tokens.length && !terminaFraseParaPiper(tokens[fim - 1])) {
+            const limiteAtual = fim;
+            for (let j = fim - 1; j >= Math.max(i + 3, fim - 9); j--) {
+                if (pausaNaturalParaPiper(tokens[j])) {fim = j + 1; break;}
+            }
+            if (fim === limiteAtual && fim < tokens.length && tokens[fim].fim - tokens[i].inicio < LIMITE) fim++;
+        }
+        const selecionados = tokens.slice(i, fim);
+        const inicio = selecionados[0].inicio;
+        const limite = selecionados[selecionados.length - 1].fim;
+        grupos.push({inicio, fim: limite, texto: frase.slice(inicio, limite), tokens: selecionados});
+        i = fim;
+    }
+    return grupos;
+}
+function pesoPalavraPiper(token) {
+    const limpa = token.texto.replace(/[^\p{L}\p{N}]/gu, "");
+    const letras = [...limpa].length;
+    let peso = 0.65 + Math.pow(Math.max(1, letras), 0.72) * 0.46;
+    if (/[,;:]$/.test(token.texto)) peso += 0.65;
+    if (terminaFraseParaPiper(token)) peso += 1.1;
+    return peso;
+}
+function criarMapaTemposPiper(duracoes, grupos) {
+    const mapa = [];
+    let instante = 0;
+    for (let i = 0; i < grupos.length; i++) {
+        const tokens = grupos[i].tokens;
+        const duracao = Number(duracoes[i]);
+        if (!tokens.length || !Number.isFinite(duracao) || duracao <= 0) return [];
+        const pesos = tokens.map(pesoPalavraPiper);
+        const soma = pesos.reduce((a,b) => a+b, 0);
+        let acumulado = 0;
+        tokens.forEach((token, j) => {
+            mapa.push({tempo: instante + duracao * acumulado / soma, token});
+            acumulado += pesos[j];
+        });
+        instante += duracao;
+    }
+    return mapa;
+}
+function prepararDestaquePiper() {
+    if (!audioPiper || !Number.isFinite(audioPiper.duration) || audioPiper.duration <= 0) return;
+    duracaoAudioPiper = audioPiper.duration;
+    const tempo = Math.max(0, Math.min(duracaoAudioPiper - 0.001, audioPiper.currentTime + adiantamentoPiper));
+    // A duração REAL de cada trecho determina o destaque. Não tentamos adivinhar
+    // em que palavra o Piper está, evitando 3-4 palavras de atraso visual.
+    let decorrido = 0;
+    let escolhido = 0;
+    for (let i = 0; i < segmentosPiper.length; i++) {
+        const duracao = Number(duracoesTrechosPiper[i]) || 0;
+        if (tempo < decorrido + duracao || i === segmentosPiper.length - 1) {escolhido = i; break;}
+        decorrido += duracao;
+    }
+    if (segmentosPiper[escolhido]) {
+        indiceTrechoAtual = escolhido;
+        const grupo = segmentosPiper[escolhido];
+        // Para a barra de progresso, uma estimativa interna é suficiente.
+        const proporcao = Math.max(0, Math.min(0.999, (tempo - decorrido) / Math.max(0.001, Number(duracoesTrechosPiper[escolhido]) || 1)));
+        const indiceToken = Math.min(grupo.tokens.length - 1, Math.floor(proporcao * grupo.tokens.length));
+        const token = grupo.tokens[indiceToken];
+        if (token) definirCursor(indiceAtual, token.inicio, token.fim);
+        aplicarDestaque();
+        atualizarInterfaceTempo();
+    }
+}
+
+// O Piper prepara os dois blocos seguintes enquanto o bloco atual é reproduzido.
+// Limita-se a memória a dois WAVs futuros e cancela pedidos antigos ao parar/saltar.
+function cancelarPreparacaoPiper() {
+    for (const entrada of audiosPreparadosPiper.values()) entrada.controller.abort();
+    audiosPreparadosPiper.clear();
+}
+
+function dadosDoBlocoPiper(indice, inicio = 0) {
+    const frase = frases[indice] || "";
+    const tokens = (palavrasPorFrase[indice] || []).filter(p => p.fim > inicio);
+    const grupos = construirSegmentosPiper(frase, tokens);
+    return { indice, inicio, tokens, grupos, trecho: frase.slice(inicio).trim() };
+}
+
+async function sintetizarBlocoPiper(dados, voz, signal) {
+    const resposta = await fetch(API_PIPER, {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({text: pronunciaPiper(dados.trecho), segments: dados.grupos.map(g => pronunciaPiper(g.texto)), voice: voz}),
+        signal, cache: "no-store"
+    });
+    if (!resposta.ok) {
+        let detalhe = "Erro HTTP " + resposta.status;
+        try { const erro = await resposta.json(); detalhe = erro.error || detalhe; } catch (_) {}
+        throw new Error(detalhe);
+    }
+    let duracoes = [];
+    try { duracoes = JSON.parse(resposta.headers.get("X-Watson-Timings") || "[]"); } catch (_) {}
+    const audio = await resposta.blob();
+    return { audio, duracoes };
+}
+
+function prepararProximosBlocosPiper(minha) {
+    if (minha !== idReproducao || !ehVozPiper(vozAtual())) return;
+    const voz = vozAtual().slice(PREFIXO_VOZ_PIPER.length);
+    const primeiro = indiceAtual + 1;
+    for (let indice = primeiro; indice < Math.min(frases.length, primeiro + QUANTIDADE_PREPARAR_PIPER); indice++) {
+        if (audiosPreparadosPiper.has(indice)) continue;
+        const dados = dadosDoBlocoPiper(indice);
+        if (!dados.trecho || !dados.grupos.length) continue;
+        const controller = new AbortController();
+        const entrada = { voz, controller, dados, promessa: null };
+        entrada.promessa = sintetizarBlocoPiper(dados, voz, controller.signal)
+            .catch(erro => {
+                if (erro.name !== "AbortError") console.warn("Pré-carregamento Piper:", erro);
+                return null; // Quando necessário, o leitor pode tentar novamente.
+            });
+        audiosPreparadosPiper.set(indice, entrada);
+    }
+}
+
+async function lerBlocoPiper(minha) {
+    if (minha !== idReproducao || !reproduzindo || indiceAtual >= frases.length) return;
+    const indice = indiceAtual;
+    const inicio = Math.max(0, Math.min(posicaoNoBloco, frases[indice].length));
+    const dados = dadosDoBlocoPiper(indice, inicio);
+    if (!dados.trecho || !dados.grupos.length) {
+        concluirBlocoPiper(minha);
+        return;
+    }
+    inicioTrechoPiper = inicio;
+    tokensTrechoPiper = dados.tokens;
+    segmentosPiper = dados.grupos;
+    indiceTrechoAtual = -1;
+    const voz = vozAtual().slice(PREFIXO_VOZ_PIPER.length);
+    const preparada = audiosPreparadosPiper.get(indice);
+    if (preparada) audiosPreparadosPiper.delete(indice);
+    if (preparada && (preparada.voz !== voz || preparada.dados.inicio !== inicio)) {
+        preparada.controller.abort();
+    }
+    const usarPreparada = preparada && preparada.voz === voz && preparada.dados.inicio === inicio;
+    if (!usarPreparada) pedidoPiper = new AbortController();
+    definirStatus(usarPreparada ? "Piper: a passar ao bloco seguinte…" : "Piper: a gerar áudio local…");
+    try {
+        let resultado = usarPreparada ? await preparada.promessa : null;
+        if (!resultado) {
+            if (!pedidoPiper) pedidoPiper = new AbortController();
+            resultado = await sintetizarBlocoPiper(dados, voz, pedidoPiper.signal);
+        }
+        if (minha !== idReproducao || !reproduzindo || indiceAtual !== indice || vozAtual().slice(PREFIXO_VOZ_PIPER.length) !== voz) return;
+        pedidoPiper = null;
+        mapaTemposPiper = criarMapaTemposPiper(resultado.duracoes, segmentosPiper);
+        duracoesTrechosPiper = resultado.duracoes;
+        urlAudioPiper = URL.createObjectURL(resultado.audio);
+        audioPiper = new Audio(urlAudioPiper);
+        audioPiper.playbackRate = velocidadeAtual();
+        audioPiper.onloadedmetadata = () => prepararDestaquePiper();
+        audioPiper.onended = () => {
+            if (minha !== idReproducao || !reproduzindo) return;
+            limparAudioPiper();
+            concluirBlocoPiper(minha);
+        };
+        audioPiper.onerror = () => {
+            if (minha !== idReproducao) return;
+            falharPiper("Não foi possível reproduzir o áudio gerado.");
+        };
+        await audioPiper.play();
+        if (minha !== idReproducao) return;
+        definirStatus("Piper offline · próximo bloco em preparação");
+        temporizadorDestaquePiper = setInterval(prepararDestaquePiper, 40);
+        prepararProximosBlocosPiper(minha);
+    } catch (erro) {
+        if (minha !== idReproducao || erro.name === "AbortError") return;
+        falharPiper(erro.message || String(erro));
+    }
+}
+
+function falharPiper(mensagem) {
+    cancelarPreparacaoPiper();
+    limparAudioPiper();
+    reproduzindo = false;
+    idReproducao++;
+    pausarRelogio();
+    definirStatus("Piper: " + mensagem);
+    console.error("Erro Piper:", mensagem);
+}
+
+function concluirBlocoPiper(minha) {
+    if (minha !== idReproducao || !reproduzindo) return;
+    posicaoNoBloco = 0;
+    inicioPalavraAtual = -1;
+    fimPalavraAtual = -1;
+    indiceTrechoAtual = -1;
+    if (indiceAtual < frases.length - 1) {
+        indiceAtual++;
+        renderizarLeitura();
+        lerBlocoPiper(minha);
+    } else {
+        cancelarPreparacaoPiper();
+        reproduzindo = false;
+        leituraConcluida = true;
+        pausarRelogio();
+        atualizarInterfaceTempo();
+        definirStatus("Concluído · Piper offline");
+    }
+}
+
+function iniciarPiper() {
+    if (audioPiper && audioPiper.paused) {
+        reproduzindo = true;
+        iniciarRelogio();
+        audioPiper.playbackRate = velocidadeAtual();
+        audioPiper.play().then(() => definirStatus("Piper offline · destaque aproximado"))
+            .catch(erro => falharPiper(erro.message));
+        return;
+    }
+    cancelarPreparacaoPiper();
+    limparAudioPiper();
+    const minha = ++idReproducao;
+    reproduzindo = true;
+    iniciarRelogio();
+    lerBlocoPiper(minha);
+}
+
 function pararMotor(opcoes = {}) {
     const manterRelogio = !!opcoes.manterRelogio;
     limparTemporizadoresVoz();
+    cancelarPreparacaoPiper();
+    limparAudioPiper();
     reproduzindo = false;
     idReproducao++;
-    if ("speechSynthesis" in window) speechSynthesis.cancel();
     if (!manterRelogio) pausarRelogio();
     definirStatus("");
 }
 function aplicarDestaque() {
     const fraseEl = document.getElementById("frase-" + indiceAtual);
-    if (fraseDestacada && fraseDestacada !== fraseEl) fraseDestacada.classList.remove("current-sentence");
+    if (fraseDestacada && fraseDestacada !== fraseEl)
+        fraseDestacada.classList.remove("current-sentence");
+    if (trechoDestacado) trechoDestacado.classList.remove("current-chunk");
+    trechoDestacado = null;
     if (fraseEl) {
         fraseEl.classList.add("current-sentence");
         fraseDestacada = fraseEl;
-    } else {
-        fraseDestacada = null;
-    }
-
-    let palavraEl = null;
-    if (fraseEl && inicioPalavraAtual >= 0) {
-        palavraEl = fraseEl.querySelector(`.word[data-inicio="${inicioPalavraAtual}"]`);
-        if (!palavraEl) {
-            const token = palavraEm(indiceAtual, inicioPalavraAtual);
-            if (token) palavraEl = fraseEl.querySelector(`.word[data-inicio="${token.inicio}"]`);
+        if (seguirLeituraAutomaticamente) {
+            // Desloca apenas o painel de leitura, nunca a página inteira.
+            const area = painelLeitura.getBoundingClientRect();
+            const caixa = fraseEl.getBoundingClientRect();
+            if (caixa.bottom > area.bottom - 8)
+                painelLeitura.scrollTop += caixa.bottom - area.bottom + 12;
+            else if (caixa.top < area.top + 8)
+                painelLeitura.scrollTop += caixa.top - area.top - 12;
         }
-    }
-    if (palavraDestacada && palavraDestacada !== palavraEl) palavraDestacada.classList.remove("current");
-    if (palavraEl) {
-        palavraEl.classList.add("current");
-        palavraDestacada = palavraEl;
-        const area = painelLeitura.getBoundingClientRect();
-        const caixa = palavraEl.getBoundingClientRect();
-        if (caixa.bottom > area.bottom - 8 || caixa.top < area.top + 8) {
-            palavraEl.scrollIntoView({ behavior: "auto", block: "nearest" });
-        }
-    } else {
-        palavraDestacada = null;
-    }
+    } else fraseDestacada = null;
 }
+
 function renderizarLeitura() {
-    if (versaoRenderizada === versaoTexto) {
-        aplicarDestaque();
-        atualizarInterfaceTempo();
-        return;
-    }
+    if (versaoRenderizada === versaoTexto) {aplicarDestaque(); atualizarInterfaceTempo(); return;}
     palavraDestacada = null;
     fraseDestacada = null;
+    trechoDestacado = null;
     painelLeitura.replaceChildren();
     if (!frases.length) {
         painelLeitura.textContent = "Aguardando texto...";
@@ -294,18 +688,29 @@ function renderizarLeitura() {
         spanFrase.className = "sentence";
         spanFrase.dataset.index = String(index);
         const palavras = palavrasPorFrase[index] || [];
+        const grupos = construirSegmentosPiper(frase, palavras);
         let cursor = 0;
-        palavras.forEach(palavra => {
-            if (palavra.inicio > cursor) {
-                spanFrase.appendChild(document.createTextNode(frase.slice(cursor, palavra.inicio)));
-            }
-            const spanPalavra = document.createElement("span");
-            spanPalavra.className = "word";
-            spanPalavra.dataset.inicio = String(palavra.inicio);
-            spanPalavra.dataset.fim = String(palavra.fim);
-            spanPalavra.textContent = palavra.texto;
-            spanFrase.appendChild(spanPalavra);
-            cursor = palavra.fim;
+        grupos.forEach((grupo, indiceGrupo) => {
+            if (grupo.inicio > cursor) spanFrase.appendChild(document.createTextNode(frase.slice(cursor, grupo.inicio)));
+            const trecho = document.createElement("span");
+            trecho.className = "reading-chunk";
+            trecho.dataset.grupo = String(indiceGrupo);
+            trecho.dataset.inicio = String(grupo.inicio);
+            trecho.dataset.fim = String(grupo.fim);
+            let dentro = grupo.inicio;
+            grupo.tokens.forEach(palavra => {
+                if (palavra.inicio > dentro) trecho.appendChild(document.createTextNode(frase.slice(dentro, palavra.inicio)));
+                const spanPalavra = document.createElement("span");
+                spanPalavra.className = "word";
+                spanPalavra.dataset.inicio = String(palavra.inicio);
+                spanPalavra.dataset.fim = String(palavra.fim);
+                spanPalavra.textContent = palavra.texto;
+                trecho.appendChild(spanPalavra);
+                dentro = palavra.fim;
+            });
+            if (dentro < grupo.fim) trecho.appendChild(document.createTextNode(frase.slice(dentro, grupo.fim)));
+            spanFrase.appendChild(trecho);
+            cursor = grupo.fim;
         });
         if (cursor < frase.length) spanFrase.appendChild(document.createTextNode(frase.slice(cursor)));
         fragmento.appendChild(spanFrase);
@@ -327,49 +732,34 @@ function prepararTexto() {
     fimPalavraAtual = -1;
     leituraConcluida = false;
     versaoTexto++;
-    if (!texto) {
-        renderizarLeitura();
-        return;
-    }
-    // Agrupa várias frases numa só fala. Criar uma utterance por ponto final
-    // faz o motor online do Edge reiniciar a voz a cada frase, causando pausas longas.
-    const partes = texto.match(/[^.!?…]+(?:[.!?…]+["'”’)\]]*|$)/g) || [];
-    const tamanhoMaximo = 500;
-    let bloco = "";
-    const adicionarBloco = () => {
-        const pronto = bloco.trim();
-        if (pronto) frases.push(pronto);
-        bloco = "";
-    };
-    partes.forEach(parteOriginal => {
-        let parte = parteOriginal.trim();
-        if (!parte) return;
-        while (parte.length > 0) {
-            const espaco = bloco ? 1 : 0;
-            const capacidade = tamanhoMaximo - bloco.length - espaco;
-            if (parte.length <= capacidade) {
-                bloco += (bloco ? " " : "") + parte;
-                parte = "";
-            } else if (bloco && capacidade <= 0) {
-                adicionarBloco();
-            } else if (bloco && capacidade > 0) {
-                let corte = parte.lastIndexOf(" ", capacidade);
-                if (corte < Math.floor(capacidade * 0.5)) corte = capacidade;
-                bloco += (bloco ? " " : "") + parte.slice(0, corte).trim();
-                adicionarBloco();
-                parte = parte.slice(corte).trim();
-            } else {
-                let corte = parte.lastIndexOf(" ", tamanhoMaximo);
-                if (corte < Math.floor(tamanhoMaximo * 0.5)) corte = tamanhoMaximo;
-                frases.push(parte.slice(0, corte).trim());
-                parte = parte.slice(corte).trim();
+    if (!texto) { renderizarLeitura(); return; }
+    // Cada frase é uma unidade clicável e uma geração Piper independente.
+    // O primeiro áudio é pequeno, para começar rapidamente, e o clique nunca
+    // recua para um bloco longo que contém várias frases.
+    // Os pontos de abreviações não devem ser confundidos com finais de frase.
+    // Substituição com o mesmo comprimento, restaurada antes da reprodução.
+    const marcado=texto.replace(/\b(?:Sras|Srs|Sra|Sr|Dra|Dr|Enga|Eng|Exma|Exmo|Av|Prof)\./gi,
+        valor=>valor.slice(0,-1)+"\uE000");
+    const partes = marcado.match(/[^.!?…]+(?:[.!?…]+["'”’)]*|$)/g) || [marcado];
+    for (const parteOriginal of partes) {
+        let parte = parteOriginal.replace(/\uE000/g,".").trim();
+        while (parte.length) {
+            if (parte.length <= 440) { frases.push(parte); break; }
+            let corte = -1;
+            const janela = parte.slice(0, 440);
+            for (const match of janela.matchAll(/[,;:]\s+/g)) {
+                if (match.index > 155) corte = match.index + match[0].length;
             }
+            if (corte < 0) corte = parte.lastIndexOf(" ", 440);
+            if (corte < 100) corte = 440;
+            frases.push(parte.slice(0, corte).trim());
+            parte = parte.slice(corte).trim();
         }
-    });
-    adicionarBloco();
+    }
     palavrasPorFrase = frases.map(tokenizarPalavras);
     renderizarLeitura();
 }
+
 function garantirTextoPreparado() {
     const textoAtual = campoTexto.value.trim();
     if (!textoAtual) return false;
@@ -407,19 +797,13 @@ function saltarPara(indice, inicio, opcoes = {}) {
     if (!garantirTextoPreparado()) return;
     const estavaTocando = reproduzindo;
     pararMotor();
-    definirCursor(indice, inicio);
+    indiceTrechoAtual = -1;
+    definirCursor(indice, 0);
     definirModoLeitura(true);
     renderizarLeitura();
-    // O Edge/Chromium pode emitir o evento de cancelamento da fala anterior
-    // de forma assíncrona. Uma espera maior evita sobrepor a nova fala à anterior.
-    if (estavaTocando || opcoes.reproduzir) {
-        const idSalto = idReproducao;
-        temporizadorReinicioSalto = setTimeout(() => {
-            temporizadorReinicioSalto = null;
-            if (idSalto === idReproducao && !reproduzindo) playAudio();
-        }, 1000);
-    }
+    if (estavaTocando || opcoes.reproduzir) playAudio();
 }
+
 function totalPalavras() {
     return palavrasPorFrase.reduce((soma, lista) => soma + lista.length, 0);
 }
@@ -433,24 +817,9 @@ function saltarPorFracao(fracao) {
     saltarPara(alvo.indiceFrase, alvo.palavra.inicio);
 }
 
-function armarTemporizadorInicio(minha) {
-    if (temporizadorInicioVoz !== null) clearTimeout(temporizadorInicioVoz);
-    temporizadorInicioVoz = setTimeout(() => {
-        if (minha !== idReproducao || !reproduzindo) return;
-        temporizadorInicioVoz = null;
-        reproduzindo = false;
-        idReproducao++;
-        speechSynthesis.cancel();
-        pausarRelogio();
-        definirStatus("A voz demorou demasiado a iniciar. Tenta novamente.");
-    }, 20000);
-}
 
 function playAudio() {
-    if (!garantirTextoPreparado()) {
-        stopAudio();
-        return;
-    }
+    if (!garantirTextoPreparado()) {stopAudio(); return;}
     if (leituraConcluida || (indiceAtual >= frases.length - 1 && posicaoNoBloco >= (frases[indiceAtual] || "").length)) {
         indiceAtual = 0;
         posicaoNoBloco = 0;
@@ -461,126 +830,27 @@ function playAudio() {
     }
     definirModoLeitura(true);
     if (reproduzindo) return;
-    if (!("speechSynthesis" in window)) {
-        definirStatus("Vozes indisponíveis");
-        alert("Este navegador não disponibiliza a síntese de voz.");
+    if (!ehVozPiper(vozAtual())) {
+        definirStatus("A carregar vozes Piper… Confirma que o servidor local está ativo.");
         return;
     }
-    const voz = mapaVozesMicrosoft.get(vozAtual());
-    if (!voz) {
-        definirStatus("Sem voz Microsoft PT");
-        alert("Não foi encontrada uma voz Microsoft neural em português neste navegador. Abra o Watson Reader Pro no Microsoft Edge e confirme que as vozes online estão disponíveis.");
-        return;
-    }
-    limparTemporizadoresVoz();
-    const minha = ++idReproducao;
-    // Não cancelar novamente aqui: saltarPara(), pauseAudio() e stopAudio()
-    // já cancelam a fala anterior. Um segundo cancel() imediatamente antes
-    // de speak() pode provocar synthesis-failed no Edge/Chromium.
-    reproduzindo = true;
-    iniciarRelogio();
-    definirStatus("A preparar voz Microsoft…");
-    // Se o motor não emitir onstart, não deixar a interface presa indefinidamente.
-    armarTemporizadorInicio(minha);
-    lerBloco(minha);
-}
-function lerBloco(minha) {
-    if (minha !== idReproducao || !reproduzindo || indiceAtual >= frases.length) return;
-    const frase = frases[indiceAtual];
-    const inicioTrecho = Math.max(0, Math.min(posicaoNoBloco, frase.length));
-    const restante = frase.slice(inicioTrecho);
-    if (!restante.trim()) {
-        posicaoNoBloco = 0;
-        if (indiceAtual < frases.length - 1) {
-            indiceAtual++;
-            renderizarLeitura();
-            lerBloco(minha);
-        } else {
-            reproduzindo = false;
-            leituraConcluida = true;
-            pausarRelogio();
-            atualizarInterfaceTempo();
-            definirStatus("Concluído");
-        }
-        return;
-    }
-    const utterance = new SpeechSynthesisUtterance(restante);
-    armarTemporizadorInicio(minha);
-    const voz = mapaVozesMicrosoft.get(vozAtual());
-    if (!voz) {
-        reproduzindo = false;
-        pausarRelogio();
-        definirStatus("Sem voz Microsoft PT");
-        alert("Não foi encontrada uma voz Microsoft em português. Abra no Microsoft Edge e confirme as vozes disponíveis.");
-        return;
-    }
-    utterance.voice = voz;
-    utterance.lang = voz.lang;
-    utterance.rate = velocidadeAtual();
-    utterance.onstart = () => {
-        if (minha === idReproducao) {
-            if (temporizadorInicioVoz !== null) clearTimeout(temporizadorInicioVoz);
-            temporizadorInicioVoz = null;
-            definirStatus("A reproduzir");
-            aplicarDestaque();
-        }
-    };
-    utterance.onboundary = evento => {
-        if (minha !== idReproducao || !reproduzindo) return;
-        if (evento.name === "word" || evento.charLength > 0) {
-            const inicio = Math.max(inicioTrecho, Math.min(inicioTrecho + evento.charIndex, frase.length - 1));
-            const token = palavraEm(indiceAtual, inicio);
-            if (token) definirCursor(indiceAtual, token.inicio, token.fim);
-            else {
-                const match = frase.slice(inicio).match(/^\S+/);
-                const tamanho = evento.charLength > 0 ? evento.charLength : (match ? match[0].length : 1);
-                definirCursor(indiceAtual, inicio, Math.min(inicio + tamanho, frase.length));
-            }
-            aplicarDestaque();
-            atualizarInterfaceTempo();
-        }
-    };
-    utterance.onend = () => {
-        if (minha !== idReproducao || !reproduzindo) return;
-        if (temporizadorInicioVoz !== null) clearTimeout(temporizadorInicioVoz);
-        temporizadorInicioVoz = null;
-        posicaoNoBloco = 0;
-        inicioPalavraAtual = -1;
-        fimPalavraAtual = -1;
-        if (indiceAtual < frases.length - 1) {
-            indiceAtual++;
-            renderizarLeitura();
-            lerBloco(minha);
-        } else {
-            reproduzindo = false;
-            leituraConcluida = true;
-            pausarRelogio();
-            atualizarInterfaceTempo();
-            definirStatus("Concluído");
-        }
-    };
-    utterance.onerror = evento => {
-        if (minha !== idReproducao) return;
-        if (temporizadorInicioVoz !== null) clearTimeout(temporizadorInicioVoz);
-        temporizadorInicioVoz = null;
-        if (evento.error === "canceled" || evento.error === "interrupted") return;
-        reproduzindo = false;
-        idReproducao++;
-        pausarRelogio();
-        const codigoErro = evento && evento.error ? String(evento.error) : "desconhecido";
-        definirStatus("Erro na leitura (" + codigoErro + ") — tenta novamente");
-        console.error("Erro na leitura:", codigoErro, evento);
-    };
-    speechSynthesis.speak(utterance);
+    iniciarPiper();
 }
 function pauseAudio() {
     if (!reproduzindo) return;
-    limparTemporizadoresVoz();
-    reproduzindo = false;
-    idReproducao++;
-    speechSynthesis.cancel();
-    pausarRelogio();
-    definirStatus("Pausado");
+    if (audioPiper) {
+        audioPiper.pause();
+        reproduzindo = false;
+        pausarRelogio();
+        definirStatus("Pausado · Piper");
+    } else {
+        cancelarPreparacaoPiper();
+        limparAudioPiper();
+        reproduzindo = false;
+        idReproducao++;
+        pausarRelogio();
+        definirStatus("Pausado · a geração foi cancelada");
+    }
 }
 function stopAudio() {
     pararMotor();
@@ -595,20 +865,20 @@ function stopAudio() {
     campoTexto.focus();
 }
 function atualizarConfiguracoesVoz() {
+    atualizarVisibilidadeSincronia();
     atualizarInterfaceTempo();
     const voz = vozAtual();
     const mudouVoz = voz !== vozAnterior;
     vozAnterior = voz;
-    if (!reproduzindo) return;
-    limparTemporizadoresVoz();
-    const minha = ++idReproducao;
-    speechSynthesis.cancel();
-    reproduzindo = true;
-    definirStatus("A preparar voz Microsoft…");
-    armarTemporizadorInicio(minha);
-    setTimeout(() => {
-        if (minha === idReproducao && reproduzindo) lerBloco(minha);
-    }, 180);
+    if (audioPiper && !mudouVoz) {
+        audioPiper.playbackRate = velocidadeAtual();
+        return;
+    }
+    if (!reproduzindo) {
+        if (mudouVoz) {cancelarPreparacaoPiper(); limparAudioPiper();}
+        return;
+    }
+    if (mudouVoz) {pararMotor(); playAudio();}
 }
 function proximaFrase() {
     if (!garantirTextoPreparado()) return;
@@ -648,51 +918,52 @@ function fraseAnterior() {
 function atualizarListaVozes() {
     const select = document.getElementById("voz");
     const anterior = select.value || vozAnterior;
-    const todas = ("speechSynthesis" in window) ? speechSynthesis.getVoices() : [];
-    const ptMicrosoft = todas.filter(v => {
-        const lang = (v.lang || "").toLowerCase();
-        const nome = (v.name || "").toLowerCase();
-        const uri = (v.voiceURI || "").toLowerCase();
-        return (lang.startsWith("pt-br") || lang.startsWith("pt-pt"))
-            && (nome.includes("microsoft") || uri.includes("microsoft"))
-            && (nome.includes("natural") || nome.includes("neural") || uri.includes("natural") || uri.includes("neural") || nome.includes("online"));
-    });
-    mapaVozesMicrosoft = new Map();
     select.replaceChildren();
-    const ordenar = ptMicrosoft.sort((a, b) => {
-        const la = (a.lang || "").toLowerCase();
-        const lb = (b.lang || "").toLowerCase();
-        return la.localeCompare(lb) || a.name.localeCompare(b.name);
-    });
-    ordenar.forEach((voz, i) => {
-        const chave = `${voz.name}|${voz.lang}|${voz.voiceURI}`;
-        mapaVozesMicrosoft.set(chave, voz);
+    vozesPiper.forEach(v => {
         const opt = document.createElement("option");
-        opt.value = chave;
-        const idioma = (voz.lang || "").toLowerCase().startsWith("pt-br") ? "Português do Brasil" : "Português de Portugal";
-        opt.textContent = `${idioma} — ${voz.name}`;
+        opt.value = PREFIXO_VOZ_PIPER + v.id;
+        opt.textContent = "🔊 Piper offline — " + v.name;
         select.appendChild(opt);
     });
-    if (!ordenar.length) {
+    if (!vozesPiper.length) {
         const opt = document.createElement("option");
         opt.value = "";
-        opt.textContent = "Nenhuma voz Microsoft neural PT encontrada";
+        opt.textContent = "Sem vozes Piper disponíveis — verifica o servidor local";
         select.appendChild(opt);
-        definirStatus("Sem vozes Microsoft PT detectadas");
-        return;
+        definirStatus("Sem vozes Piper disponíveis");
     }
-    select.value = mapaVozesMicrosoft.has(anterior) ? anterior : select.options[0].value;
+    const disponiveis = Array.from(select.options);
+    select.value = disponiveis.some(o => o.value === anterior) ? anterior : (disponiveis[0] ? disponiveis[0].value : "");
     vozAnterior = select.value;
-    if (!estadoLeitura.textContent || estadoLeitura.textContent.includes("Sem vozes")) definirStatus("");
+    atualizarVisibilidadeSincronia();
+    if (vozesPiper.length && estadoLeitura.textContent.includes("Sem vozes Piper")) definirStatus("");
 }
+async function carregarVozesPiper() {
+    try {
+        const resposta = await fetch("/api/voices", {cache: "no-store"});
+        if (!resposta.ok) throw new Error("Servidor indisponível");
+        const dados = await resposta.json();
+        vozesPiper = Array.isArray(dados.voices) ? dados.voices : [];
+        atualizarListaVozes();
+    } catch (erro) {
+        vozesPiper = [];
+        atualizarListaVozes();
+        console.warn("Vozes Piper indisponíveis:", erro);
+    }
+}
+carregarVozesPiper();
+atualizarVisibilidadeSincronia();
 
 painelLeitura.addEventListener("click", evento => {
-    const palavraEl = evento.target.closest(".word");
-    if (!palavraEl || !painelLeitura.contains(palavraEl)) return;
-    const fraseEl = palavraEl.closest(".sentence");
+    const selecionado = window.getSelection();
+    // Preserve text selection/copy without accidentally restarting playback.
+    if (selecionado && !selecionado.isCollapsed) return;
+    const elemento = evento.target instanceof Element ? evento.target : evento.target.parentElement;
+    const fraseEl = elemento && elemento.closest(".sentence");
     if (!fraseEl) return;
-    saltarPara(Number(fraseEl.dataset.index), Number(palavraEl.dataset.inicio));
+    saltarPara(Number(fraseEl.dataset.index), 0, {reproduzir: true});
 });
+
 faixaProgresso.addEventListener("click", evento => {
     const caixa = faixaProgresso.getBoundingClientRect();
     if (!caixa.width) return;
@@ -704,45 +975,78 @@ faixaProgresso.addEventListener("keydown", evento => {
     const delta = evento.key === "ArrowRight" ? 0.05 : -0.05;
     saltarPorFracao(Math.max(0, Math.min(1, calcularFracaoLeitura() + delta)));
 });
+function substituirTranscricao(texto) {
+    seguirLeituraAutomaticamente = true;
+    atualizarBotaoSeguimento();
+    pararMotor();
+    definirModoLeitura(false);
+    const protegido=protegerTranscricao(texto);
+    campoTexto.value = protegido.texto;
+    textoPreparado = "";
+    prepararTexto();
+    campoTexto.focus();
+    campoTexto.select();
+    const aviso=document.getElementById("privacyResult");
+    if(aviso) aviso.textContent=texto
+        ? ("Substituições: "+protegido.substituicoes+". Todos os algarismos detetados são ocultados; nomes permanecem visíveis. Revê moradas e identificadores.")
+        : "Transcrição limpa.";
+    definirStatus(texto ? "Proteção aplicada — revê os dados antes de ler." : "Transcrição limpa");
+}
+function limparTranscricao() { substituirTranscricao(""); }
+// O texto é de consulta: aceita apenas colar nova transcrição e limpar tudo.
+// Não permite editar letras, apagar frases isoladas ou alterar o texto lido.
+campoTexto.addEventListener("paste", evento => {
+    evento.preventDefault();
+    const texto = evento.clipboardData && evento.clipboardData.getData("text/plain");
+    if (typeof texto === "string" && texto.length) substituirTranscricao(texto);
+});
+painelLeitura.addEventListener("paste", evento => {
+    evento.preventDefault();
+    const texto = evento.clipboardData && evento.clipboardData.getData("text/plain");
+    if (typeof texto === "string" && texto.length) substituirTranscricao(texto);
+});
+// Em modo leitura Ctrl+A permite selecionar a transcrição para copiar.
+// Um segundo Ctrl+A não altera nem desbloqueia o texto.
 document.addEventListener("keydown", evento => {
     const alvo = evento.target;
-    const aEscrever = alvo && (alvo.tagName === "TEXTAREA" || alvo.tagName === "INPUT" || alvo.tagName === "SELECT" || alvo.isContentEditable);
-    if ((evento.ctrlKey || evento.metaKey) && evento.key.toLowerCase() === "a") {
-        const container = document.querySelector(".container");
-        if (container.classList.contains("reading-mode") && document.activeElement !== campoTexto) {
-            evento.preventDefault();
-            stopAudio();
-            campoTexto.focus();
-            campoTexto.select();
-        }
+    const inputAtivo = alvo === campoTexto;
+    const emLeitura = document.querySelector(".container").classList.contains("reading-mode");
+    const leitorAtivo = emLeitura && alvo !== campoTexto &&
+        !(alvo && (alvo.tagName === "INPUT" || alvo.tagName === "SELECT"));
+    if ((evento.ctrlKey || evento.metaKey) && evento.key.toLowerCase() === "a" && leitorAtivo) {
+        evento.preventDefault();
+        const selecao = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(painelLeitura);
+        selecao.removeAllRanges();
+        selecao.addRange(range);
+        painelLeitura.focus({preventScroll:true});
         return;
     }
-    if (aEscrever) return;
+    if (evento.key === "Backspace" || evento.key === "Delete") {
+        if (inputAtivo && campoTexto.selectionStart === 0 && campoTexto.selectionEnd === campoTexto.value.length) {
+            evento.preventDefault(); limparTranscricao(); return;
+        }
+        if (leitorAtivo) {
+            const selecao = window.getSelection();
+            if (selecao && !selecao.isCollapsed && selecao.toString().trim() === painelLeitura.textContent.trim()) {
+                evento.preventDefault(); limparTranscricao(); return;
+            }
+        }
+    }
+    if (inputAtivo || (alvo && (alvo.tagName === "INPUT" || alvo.tagName === "SELECT" || alvo.isContentEditable))) return;
     if (evento.code === "Space" || evento.key === "k") {
         evento.preventDefault();
-        if (reproduzindo) pauseAudio();
-        else playAudio();
+        if (reproduzindo) pauseAudio(); else playAudio();
     } else if (evento.key === "ArrowLeft") {
-        evento.preventDefault();
-        fraseAnterior();
+        evento.preventDefault(); fraseAnterior();
     } else if (evento.key === "ArrowRight") {
-        evento.preventDefault();
-        proximaFrase();
+        evento.preventDefault(); proximaFrase();
     }
 });
-if ("speechSynthesis" in window) {
-    atualizarListaVozes();
-    speechSynthesis.onvoiceschanged = atualizarListaVozes;
-    // Alguns navegadores carregam a lista de vozes de forma assíncrona.
-    setTimeout(atualizarListaVozes, 300);
-    setTimeout(atualizarListaVozes, 1200);
-}
-campoTexto.addEventListener("input", () => {
-    if (reproduzindo) stopAudio();
-    textoPreparado = "";
-    atualizarInterfaceTempo();
-});
+
 vozAnterior = vozAtual();
+atualizarBotaoSeguimento();
 atualizarInterfaceTempo();
 </script>
 </body>
